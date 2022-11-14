@@ -6,28 +6,28 @@ CubeRobot::CubeRobot(Mesh* cube)
 	body->SetModelScale(Vector3(10, 15, 5));
 	origBodyTransform = Matrix4::Translation(Vector3(0, 35, 0));
 	body->SetTransform(origBodyTransform);
-	body->name = "Body";
+	body->nodeName = "Body";
 	body->SetBoundingRadius(15.0f);
 	AddChild(body);
 
 	head = new SceneNode(cube, Vector4(0, 1, 0, 1));
 	head->SetModelScale(Vector3(5, 5, 5));
 	head->SetTransform(Matrix4::Translation(Vector3(0, 30, 0)));
-	head->name = "Head";
+	head->nodeName = "Head";
 	head->SetBoundingRadius(5.0f);
 	body->AddChild(head);
 
 	leftArm = new SceneNode(cube, Vector4(0, 0, 1, 1));
 	leftArm->SetModelScale(Vector3(3, -18, 3));
 	leftArm->SetTransform(Matrix4::Translation(Vector3(-13, 30, -1)));
-	leftArm->name = "leftArm";
+	leftArm->nodeName = "leftArm";
 	leftArm->SetBoundingRadius(18.0f);
 	body->AddChild(leftArm);
 
 	rightArm = new SceneNode(cube, Vector4(0, 0, 1, 1));
 	rightArm->SetModelScale(Vector3(3, -18, 3));
 	rightArm->SetTransform(Matrix4::Translation(Vector3(13, 30, -1)));
-	rightArm->name = "rightArm";
+	rightArm->nodeName = "rightArm";
 	rightArm->SetBoundingRadius(18.0f);
 	body->AddChild(rightArm);
 

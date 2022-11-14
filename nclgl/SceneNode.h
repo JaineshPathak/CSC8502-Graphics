@@ -8,7 +8,7 @@
 class SceneNode
 {
 public:
-	std::string name = "Empty Node";
+	std::string nodeName = "Empty Node";
 
 	SceneNode(Mesh* m = NULL, Vector4 col = Vector4());
 	~SceneNode(void);
@@ -23,8 +23,11 @@ public:
 	Vector3 GetModelScale() const { return modelScale; }
 	void SetModelScale(Vector3 s) { modelScale = s; }
 
-	Mesh* GetMesh() const { return mesh; }
+	virtual Mesh* GetMesh() const { return mesh; }
 	void SetMesh(Mesh* m) { mesh = m; }
+
+	Shader* GetShader() const { return shader; }
+	void SetShader(Shader* s) { shader = s; }
 
 	void AddChild(SceneNode* s);
 	SceneNode* GetChild(int index);
@@ -56,6 +59,7 @@ protected:
 	Matrix4 worldTransform;
 	Vector3 modelScale;
 	Vector4 colour;
+	Shader* shader;
 	std::vector<SceneNode*> children;
 
 	float distanceFromCamera;

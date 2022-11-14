@@ -63,7 +63,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	BufferData();
 
 	heightMapSize.x = vertexScaleV.x * (iWidth - 1);
-	heightMapSize.y = vertexScaleV.y * 255.0f;
+	heightMapSize.y = vertexScaleV.y * 255.0f * extraHeight;
 	heightMapSize.z = vertexScaleV.z * (iHeight - 1);
 	
 	//--------------------------------------------------------------------------
@@ -78,7 +78,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	//--------------------------------------------------------------------------
 	// Textures
 	
-	terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap3.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);

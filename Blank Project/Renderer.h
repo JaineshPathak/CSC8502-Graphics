@@ -1,6 +1,7 @@
 #pragma once
 #include "../NCLGL/OGLRenderer.h"
-#include "TerrainHeightmap.h"
+#include "TerrainNode.h"
+#include "RockNode.h"
 
 class Camera;
 
@@ -15,9 +16,20 @@ public:
 	 bool BindTexture(GLuint texID, GLuint unit, const std::string& uniformName, Shader* s);
 
 protected:
+	SceneNode* rootNode;
+	TerrainNode* terrainNode;
+
+	SceneNode* rocksParentNode;
+	RockNode* rockNode;
+
+	SceneNode* treesParentNode;
+
 	Camera* cameraMain;
 
-
 	void DrawMainTerrain();
+	void DrawNode(SceneNode* n);
+	void DrawRocks();
 	TerrainHeightmap* terrainMain;
+
+	//Testing
 };

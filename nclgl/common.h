@@ -57,6 +57,8 @@ static inline float Clamp(const float& val, const float& min, const float& max)
 #define TEXTUREDIR  "../Textures/"
 #define SOUNDSDIR	"../Sounds/"
 
+#define MESHDIRCOURSE		"../Meshes/Coursework/"
+
 #define SHADERDIRCOURSE	"../Shaders/Coursework/"
 #define TEXTUREDIRCOURSE  "../Textures/Coursework/"
 
