@@ -136,17 +136,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileHandler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="RockNode.cpp" />
     <ClCompile Include="TerrainHeightmap.cpp" />
     <ClCompile Include="TerrainNode.cpp" />
+    <ClCompile Include="TreePropNode.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FileHandler.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RockNode.h" />
     <ClInclude Include="TerrainHeightmap.h" />
     <ClInclude Include="TerrainNode.h" />
+    <ClInclude Include="TreePropNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

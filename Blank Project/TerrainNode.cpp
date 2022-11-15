@@ -3,7 +3,7 @@
 TerrainNode::TerrainNode()
 {
 	nodeName = "TerrainMain";
-	terrainHMap = new TerrainHeightmap(TEXTUREDIRCOURSETERRAIN"Terrain_heightmap3.png", 32.0f, 32.0f, 16.0f, 16.0f);
+	terrainHMap = new TerrainHeightmap(TEXTUREDIRCOURSETERRAIN"Terrain_heightmap4.png", 32.0f, 32.0f, 16.0f, 16.0f);
 	shader = terrainHMap->GetTerrainShader();
 }
 

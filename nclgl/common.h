@@ -64,3 +64,10 @@ static inline float Clamp(const float& val, const float& min, const float& max)
 
 #define SHADERDIRCOURSETERRAIN	"../Shaders/Coursework/Terrain/"
 #define TEXTUREDIRCOURSETERRAIN  "../Textures/Coursework/Terrain/"
+
+#define LEVELDATA "../LevelData/"
+#define ROCK2FILE "../LevelData/Rock2.sav"
+#define ROCK5AFILE "../LevelData/Rock5A.sav"
+#define TREESFILE "../LevelData/TreesProp.sav"
+#define CASTLEFILE "../LevelData/CastleProp.sav"
+#define RUINSFILE "../LevelData/RuinsProp.sav"

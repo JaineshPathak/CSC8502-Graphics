@@ -6,6 +6,7 @@ SceneNode::SceneNode(Mesh* m, Vector4 col)
 	colour = col;
 	parent = NULL;
 	modelScale = Vector3(1, 1, 1);
+	modelRotation = Vector3(0, 0, 0);
 
 	boundingRadius = 1.0f;
 	distanceFromCamera = 0.0f;
