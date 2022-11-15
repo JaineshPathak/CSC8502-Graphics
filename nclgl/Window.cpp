@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "Mouse.h"
 #include "Keyboard.h"
+#include <imGUI/imgui_impl_win32.cpp>
 
 Window* Window::window		= nullptr;
 Keyboard*Window::keyboard	= nullptr;
@@ -33,7 +34,7 @@ Window::Window(std::string title, int sizeX, int sizeY, bool fullScreen)	{
 	    windowClass.style		= CS_HREDRAW | CS_VREDRAW;
 		windowClass.lpfnWndProc	= (WNDPROC)WindowProc;
 		windowClass.hInstance	= hInstance;
-		windowClass.hCursor		= LoadCursor(NULL, IDC_CROSS);
+		windowClass.hCursor		= LoadCursor(NULL, IDC_ARROW);
 		windowClass.hbrBackground = (HBRUSH)COLOR_WINDOW;
 		windowClass.lpszClassName = WINDOWCLASS;
 
@@ -175,6 +176,9 @@ void Window::CheckMessages(MSG &msg)	{
 }
 
 LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)	{
+
+	ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam);
+
     switch(message)	 {
         case(WM_DESTROY):	{
 			window->ShowOSPointer(true);

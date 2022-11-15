@@ -1,8 +1,34 @@
 #include "Renderer.h"
 #include "../nclgl/Camera.h"
 
+static std::string _labelPrefix(const char* const label)
+{
+	float width = ImGui::CalcItemWidth();
+
+	float x = ImGui::GetCursorPosX();
+	ImGui::Text(label); 
+	ImGui::SameLine(); 
+	ImGui::SetCursorPosX(x + width * 0.5f + ImGui::GetStyle().ItemInnerSpacing.x);
+	ImGui::SetNextItemWidth(-1);
+
+	std::string labelID = "##";
+	labelID += label;
+
+	return labelID;
+}
+
 Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 {
+	//-----------------------------------------------------------
+	//Imgui 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplWin32_Init(parent.GetHandle());
+	ImGui_ImplOpenGL3_Init("#version 330");
+	//-----------------------------------------------------------
+
 	cameraMain = new Camera();
 	cameraMain->SetDefaultSpeed(450.0f);
 
@@ -36,15 +62,16 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	rockNode->SetTexture(rocksTexture);
 	rockNode->SetShader(rocksShader);*/
 
-	rockNode = new RockNode();
-	rockNode->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 2.5f, 0.5f)));
-	rockNode->SetModelScale(Vector3(3.5f, 7.5f, 3.5f) * 2.5f);
-	rocksParentNode->AddChild(rockNode);
+	for (int i = 0; i < 2; i++)
+	{
+		RockNode* rock = new RockNode();
+		rock->SetModelScale(Vector3(3.5f, 6.5f, 3.5f));
+		rock->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * Matrix4::Scale(rock->GetModelScale()));
+		rocksParentNode->AddChild(rock);
+	}
 
 	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
 	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
-
-	std::cout << "Terrain: " << terrainHeightmapSize;
 
 	projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 45.0f);
 
@@ -58,6 +85,10 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 Renderer::~Renderer(void)	
 {
 	delete cameraMain;
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void Renderer::UpdateScene(float dt) 
@@ -68,14 +99,70 @@ void Renderer::UpdateScene(float dt)
 	rootNode->Update(dt);
 }
 
+void Renderer::UpdateImGui()
+{
+	//glClear(GL_COLOR_BUFFER_BIT);
+
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	/*ImGui::Begin("Debug Window");
+	ImGui::Text("Camera Position: "  cameraMain->getPosition());
+	ImGui::End();*/
+	if (ImGui::CollapsingHeader("Terrain"))
+		ImGui::DragFloat3(_labelPrefix("Heightmap Size").c_str(), (float*)&terrainNode->GetHeightmapSize());
+	if (ImGui::CollapsingHeader("Camera"))
+	{
+		Vector3 cPos = cameraMain->getPosition();
+		Vector3 cRot = cameraMain->getRotation();
+		float cSpeed = cameraMain->getDefaultSpeed();
+		if (ImGui::DragFloat3(_labelPrefix("Position").c_str(), (float*)&cPos))
+			cameraMain->SetPosition(cPos);
+		if (ImGui::DragFloat3(_labelPrefix("Rotation").c_str(), (float*)&cameraMain->getRotation()))
+			cameraMain->SetRotation(cRot);
+		if (ImGui::DragFloat(_labelPrefix("Speed").c_str(), &cSpeed))
+			cameraMain->SetDefaultSpeed(cSpeed);
+	}
+	if (ImGui::CollapsingHeader("Rocks"))
+	{
+		for (int i = 0; i < rocksParentNode->GetChildCount() && (rocksParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = rocksParentNode->GetChild(i);
+			ImGui::Text((std::string("Rock[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * Matrix4::Scale(node->GetModelScale()));
+			
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+	}
+
+	ImGui::ShowDemoWindow();
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
 void Renderer::RenderScene()	
 {
 	glClearColor(0.2f,0.2f,0.2f,1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
 	//DrawMainTerrain();	
 	//UpdateShaderMatrices();
 	DrawNode(rootNode);
+
+	UpdateImGui();
 }
 
 void Renderer::DrawMainTerrain()

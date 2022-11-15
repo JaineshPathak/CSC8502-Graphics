@@ -63,7 +63,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	BufferData();
 
 	heightMapSize.x = vertexScaleV.x * (iWidth - 1);
-	heightMapSize.y = vertexScaleV.y * 255.0f * extraHeight;
+	heightMapSize.y = vertexScaleV.y * 255.0f;
 	heightMapSize.z = vertexScaleV.z * (iHeight - 1);
 	
 	//--------------------------------------------------------------------------

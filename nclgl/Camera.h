@@ -46,15 +46,17 @@ public:
 
 	~Camera(void) {}
 
+	float getDefaultSpeed() const { return defaultSpeed; }
 	inline void SetDefaultSpeed(float s) { defaultSpeed = s; }
 
 	void UpdateCamera(float dt = 1.0f);
 	Matrix4 BuildViewMatrix();
 
 	Vector3 getPosition() const { return camPosition; }
-	void SetPosition(Vector3 val) { camPosition = val; }
+	void SetPosition(const Vector3& val) { camPosition = val; }
 
 	Vector3 getRotation() const { return camRotation; }
+	void SetRotation(const Vector3& val) { camRotation = val; }
 
 	float GetPitch() const { return camRotation.x; }
 	void SetPitch(float p) { camRotation.x = p; }
@@ -64,6 +66,7 @@ public:
 
 	float GetRoll() const { return camRotation.z; }
 	void SetRoll(float val) { camRotation.z = val; }
+
 
 protected:
 	//float pitch;
