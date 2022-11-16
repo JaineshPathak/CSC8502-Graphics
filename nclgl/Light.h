@@ -3,6 +3,12 @@
 #include "Vector4.h"
 #include "Vector3.h"
 
+enum LIGHT_TYPE
+{
+	TYPE_POINTLIGHT = 0,
+	TYPE_DIRECTIONALLIGHT = 1
+};
+
 class Light
 {
 public:
@@ -38,6 +44,7 @@ public:
 	void SetRadius(float val) { radius = val; }
 
 protected:
+	LIGHT_TYPE lightType = TYPE_POINTLIGHT;
 	Vector3 position;
 	Vector4 colour;
 	Vector4 specularColour;

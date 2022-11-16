@@ -4,12 +4,15 @@
 #include "RockNode.h"
 #include "TreePropNode.h"
 #include "FileHandler.h"
+#include "Skybox.h"
 
 #include "../Third Party/imgui/imgui.h"
 #include "../Third Party/imgui/imgui_impl_opengl3.h"
 #include "../Third Party/imgui/imgui_impl_win32.h"
 
 class Camera;
+class Light;
+class DirectionalLight;
 
 class Renderer : public OGLRenderer	
 {
@@ -37,6 +40,7 @@ protected:
 	SceneNode* rocks2ParentNode;
 	SceneNode* rocks5aParentNode;
 	GLuint rockTexture;
+	MeshMaterial* rockMaterial;
 	
 	Mesh* rock2Mesh;
 	Mesh* rock5aMesh;
@@ -89,6 +93,18 @@ protected:
 	MeshMaterial* ruinsMaterial;
 	TreePropNode* ruinsPropNode;
 	//--------------------------------------------------------------------
+
+	//Lights
+	DirectionalLight* dirLight;
+
+	//--------------------------------------------------------------------
+
+	//Cubemap
+	Skybox* skybox;
+	void DrawSkybox();
+
+	//Timer
+	GameTimer* timer;
 
 	//void DrawMainTerrain();
 	void DrawNodes();

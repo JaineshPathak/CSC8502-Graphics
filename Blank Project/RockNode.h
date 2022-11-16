@@ -7,4 +7,7 @@ public:
 	RockNode(std::string suffixName);
 
 	virtual void Draw(const OGLRenderer& r) override;
+
+private:
+	GLuint bumpTexture;
 };

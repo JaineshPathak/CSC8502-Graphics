@@ -68,7 +68,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	
 	//--------------------------------------------------------------------------
 	// Shader loading
-	terrainShader = new Shader(SHADERDIRCOURSETERRAIN"TerrainVert.glsl", SHADERDIRCOURSETERRAIN"TerrainFrag.glsl");
+	terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
 	if (!terrainShader->LoadSuccess())
 	{
 		initSuccess = false;
@@ -79,6 +79,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	// Textures
 	
 	terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	
 	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);

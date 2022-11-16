@@ -137,6 +137,7 @@
     <ClInclude Include="..\Third Party\imgui\imstb_truetype.h">
       <Filter>imgui</Filter>
     </ClInclude>
+    <ClInclude Include="DirectionalLight.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GLAD">

@@ -10,4 +10,5 @@ public:
 
 protected:
 	std::vector<GLuint> matTextures;
+	std::vector<GLuint> matBumpTextures;
 };

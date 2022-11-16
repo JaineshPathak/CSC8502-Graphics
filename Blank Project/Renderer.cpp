@@ -1,5 +1,7 @@
 #include "Renderer.h"
 #include "../nclgl/Camera.h"
+#include "../nclgl/Light.h"
+#include "../nclgl/DirectionalLight.h"
 #include <algorithm>
 
 static std::string _labelPrefix(const char* const label)
@@ -20,6 +22,8 @@ static std::string _labelPrefix(const char* const label)
 
 Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 {
+	timer = parent.GetTimer();
+
 	//-----------------------------------------------------------
 	//Imgui 
 	IMGUI_CHECKVERSION();
@@ -95,15 +99,18 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	rockNode->SetShader(rocksShader);*/
 #pragma endregion
 
-	basicDiffuseShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragment.glsl");
+	basicDiffuseShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	
 	//Rocks
 	rock2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock2.msh");
 	rock5aMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5A.msh");
-	rockTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	rockMaterial = new MeshMaterial(MESHDIRCOURSE"Rocks/Mesh_Rock5A.mat", true);
+	//rockTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	
-	LoadRockData(ROCK2FILE, rock2Mesh, rockTexture, rocks2ParentNode);		//Rock2
-	LoadRockData(ROCK5AFILE, rock5aMesh, rockTexture, rocks5aParentNode);		//Rock5a
+	//LoadRockData(ROCK2FILE, rock2Mesh, rockTexture, rocks2ParentNode);		//Rock2
+	//LoadRockData(ROCK5AFILE, rock5aMesh, rockTexture, rocks5aParentNode);		//Rock5a
+	LoadTreeData(ROCK2FILE, rock2Mesh, rockMaterial, rocks2ParentNode);
+	LoadTreeData(ROCK5AFILE, rock5aMesh, rockMaterial, rocks5aParentNode);
 
 	//Trees
 	treeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Trees/Tree_01.msh");
@@ -129,6 +136,12 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ruinsMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
 	ruinsMaterial = new MeshMaterial(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.mat", true);
 	LoadTreeData(RUINSFILE, ruinsMesh, ruinsMaterial, ruinsParentNode);
+
+	//Lights
+	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
+
+	//Skybox Cubemap
+	skybox = new Skybox();
 
 	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
 	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
@@ -241,6 +254,8 @@ void Renderer::UpdateScene(float dt)
 	viewMatrix = cameraMain->BuildViewMatrix();
 
 	rootNode->Update(dt);
+
+	//dirLight->SetLightDir(Vector3(sin(timer->GetTotalTimeSeconds()), cos(timer->GetTotalTimeSeconds()), 0));
 }
 
 void Renderer::UpdateImGui()
@@ -608,6 +623,16 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(RUINSFILE, nodePosV, nodeRotV, nodeScaleV);
 		}
 	}
+	if (ImGui::CollapsingHeader("Directional Light"))
+	{
+		Vector3 lightDir = dirLight->GetLightDir();
+		Vector4 lightDirColor = dirLight->GetColour();
+		if (ImGui::SliderFloat3(_labelPrefix(std::string("Direction").c_str()).c_str(), (float*)&lightDir, 0.0f, 1.0f))
+			dirLight->SetLightDir(lightDir);
+
+		if (ImGui::SliderFloat4(_labelPrefix(std::string("Colour").c_str()).c_str(), (float*)&lightDirColor, 0.0f, 1.0f))
+			dirLight->SetColour(lightDirColor);
+	}
 
 	ImGui::ShowDemoWindow();
 	ImGui::Render();
@@ -627,6 +652,7 @@ void Renderer::RenderScene()
 
 	//DrawMainTerrain();	
 	//UpdateShaderMatrices();
+	DrawSkybox();
 	if (blendFix)
 	{
 		DrawNodes();
@@ -636,6 +662,21 @@ void Renderer::RenderScene()
 		DrawNode(rootNode);
 
 	UpdateImGui();
+}
+
+void Renderer::DrawSkybox()
+{
+	if (skybox == nullptr)
+		return;
+
+	glDepthMask(GL_FALSE);
+
+	BindShader(skybox->GetSkyboxShader());
+	UpdateShaderMatrices();
+
+	skybox->Draw();
+
+	glDepthMask(GL_TRUE);
 }
 
 #pragma region OLD
@@ -686,10 +727,18 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 	if (n->GetMesh())
 	{
 		BindShader(n->GetShader());
+		Shader* tempShader = n->GetShader();
 		modelMatrix = n->GetWorldTransform() * Matrix4::Scale(n->GetModelScale());
+
 		UpdateShaderMatrices();
-		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "modelMatrix"), 1, false, model.values);
+
+		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "cameraPos"), 1, (float*)&cameraMain->getPosition());
+		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDir"), 1, (float*)&dirLight->GetLightDir());
+		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirColour"), 1, (float*)&dirLight->GetColour());
+		SetShaderLight(*dirLight);		//Sun
 		n->Draw(*this);
+		
+		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "modelMatrix"), 1, false, model.values);
 	}
 	
 	if (includingChild)
@@ -703,6 +752,7 @@ void Renderer::ClearNodeLists()
 {
 	transparentNodesList.clear();
 	opaqueNodesList.clear();
+	opaqueNodesList.push_back(terrainNode);
 }
 
 //void Renderer::DrawRocks2()
