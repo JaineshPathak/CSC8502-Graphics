@@ -70,4 +70,6 @@ static inline float Clamp(const float& val, const float& min, const float& max)
 #define ROCK5AFILE "../LevelData/Rock5A.sav"
 #define TREESFILE "../LevelData/TreesProp.sav"
 #define CASTLEFILE "../LevelData/CastleProp.sav"
+#define CASTLEPILLARFILE "../LevelData/CastlePillarProp.sav"
+#define CASTLEBRIDGEFILE "../LevelData/CastleBridgeProp.sav"
 #define RUINSFILE "../LevelData/RuinsProp.sav"

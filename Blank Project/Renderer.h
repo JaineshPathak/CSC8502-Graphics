@@ -23,6 +23,9 @@ public:
 	 //bool BindTexture(GLuint texID, GLuint unit, const std::string& uniformName, Shader* s);
 
 protected:
+	bool blendFix = true;
+	Camera* cameraMain;
+
 	SceneNode* rootNode;
 	TerrainNode* terrainNode;
 	//TerrainHeightmap* terrainMain;
@@ -50,9 +53,9 @@ protected:
 	MeshMaterial* treeMaterial;
 	TreePropNode* treePropNode;
 
-	void NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent);
-	void NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent);
-	void LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, SceneNode* parent);
+	void NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent = false);
+	void NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent, bool isTransparent = false);
+	void LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent = false);
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -64,6 +67,22 @@ protected:
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
+	//Castle Pillar
+	SceneNode* castlePillarParentNode;
+	Mesh* castlePillarMesh;
+	MeshMaterial* castlePillarMaterial;
+	TreePropNode* castlePillarPropNode;
+	//--------------------------------------------------------------------
+
+	//--------------------------------------------------------------------
+	//Castle Pillar
+	SceneNode* castleBridgeParentNode;
+	Mesh* castleBridgeMesh;
+	MeshMaterial* castleBridgeMaterial;
+	TreePropNode* castleBridgePropNode;
+	//--------------------------------------------------------------------
+
+	//--------------------------------------------------------------------
 	//Ruins Main
 	SceneNode* ruinsParentNode;
 	Mesh* ruinsMesh;
@@ -71,11 +90,14 @@ protected:
 	TreePropNode* ruinsPropNode;
 	//--------------------------------------------------------------------
 
-	Camera* cameraMain;
-
 	//void DrawMainTerrain();
-	void DrawNode(SceneNode* n);
-	//void DrawRocks2();
+	void DrawNodes();
+	void BuildNodeLists(SceneNode* from);
+	void SortNodeLists();
+	void ClearNodeLists();
 
-	//Testing
+	void DrawNode(SceneNode* n, bool includingChild = true);
+
+	std::vector<SceneNode*> transparentNodesList;
+	std::vector<SceneNode*> opaqueNodesList;
 };

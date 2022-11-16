@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "../nclgl/Camera.h"
+#include <algorithm>
 
 static std::string _labelPrefix(const char* const label)
 {
@@ -29,9 +30,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ImGui_ImplOpenGL3_Init("#version 330");
 	//-----------------------------------------------------------
 
-	cameraMain = new Camera();
-	cameraMain->SetDefaultSpeed(450.0f);
-
 	rootNode = new SceneNode();
 	rootNode->nodeName = "Root";
 
@@ -55,11 +53,18 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	// Castle
 	castleParentNode = new SceneNode();
 	castleParentNode->nodeName = "CastleParent";
+
+	castlePillarParentNode = new SceneNode();
+	castlePillarParentNode->nodeName = "CastlePillarsParent";
+	
+	castleBridgeParentNode = new SceneNode();
+	castleBridgeParentNode->nodeName = "CastleBridgeParent";
 	//------------------------------------------------------------------
 
 	//Ruins
 	ruinsParentNode = new SceneNode();
 	ruinsParentNode->nodeName = "RuinsParent";
+	//------------------------------------------------------------------
 
 	
 	rootNode->AddChild(terrainNode);
@@ -67,9 +72,13 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	terrainNode->AddChild(rocks5aParentNode);
 	terrainNode->AddChild(treesParentNode);
 	terrainNode->AddChild(castleParentNode);
+	terrainNode->AddChild(castlePillarParentNode);
+	terrainNode->AddChild(castleBridgeParentNode);
 	terrainNode->AddChild(ruinsParentNode);
 
 	terrainHeightmapSize = terrainNode->GetHeightmapSize();
+	cameraMain = new Camera();
+	cameraMain->SetDefaultSpeed(850.0f);
 	cameraMain->SetPosition(terrainHeightmapSize * Vector3(0.5f, 2.5f, 0.5f));
 
 #pragma region OLD
@@ -99,12 +108,22 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	//Trees
 	treeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Trees/Tree_01.msh");
 	treeMaterial = new MeshMaterial(MESHDIRCOURSE"Trees/Tree_01.mat", true);
-	LoadTreeData(TREESFILE, treeMesh, treeMaterial, treesParentNode);
+	LoadTreeData(TREESFILE, treeMesh, treeMaterial, treesParentNode, true);
 
 	//Castle
 	castleMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
 	castleMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastleMain.mat", true);
 	LoadTreeData(CASTLEFILE, castleMesh, castleMaterial, castleParentNode);
+
+	//Castle Pillar
+	castlePillarMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastlePillar.msh");
+	castlePillarMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastlePillar.mat", true);
+	LoadTreeData(CASTLEPILLARFILE, castlePillarMesh, castlePillarMaterial, castlePillarParentNode);
+
+	//Castle Bridge
+	castleBridgeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
+	castleBridgeMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_Bridge.mat", true);
+	LoadTreeData(CASTLEBRIDGEFILE, castleBridgeMesh, castleBridgeMaterial, castleBridgeParentNode);
 
 	//Ruins
 	ruinsMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
@@ -136,7 +155,7 @@ Renderer::~Renderer(void)
 	ImGui::DestroyContext();
 }
 
-
+//------------------------------------------------------------------
 
 //Init at Center of map
 void Renderer::NewRock(Mesh* m, GLuint t, SceneNode* parent)
@@ -177,26 +196,30 @@ void Renderer::LoadRockData(const std::string& fileName, Mesh* m, GLuint t, Scen
 		NewRock(m, t, parent);
 }
 
+//------------------------------------------------------------------
 
-
-void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent)
+void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent)
 {
 	TreePropNode* tree = new TreePropNode(m, mMat, basicDiffuseShader, TEXTUREDIR);
+	if (isTransparent)
+		tree->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
 	tree->SetModelScale(Vector3(6.0f, 6.0f, 6.0f));
 	tree->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * tree->GetRotationMatrix() * Matrix4::Scale(tree->GetModelScale()));
 	parent->AddChild(tree);
 }
 
-void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent)
+void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent, bool isTransparent)
 {
 	TreePropNode* tree = new TreePropNode(m, mMat, basicDiffuseShader, TEXTUREDIR);
+	if (isTransparent)
+		tree->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
 	tree->SetModelRotation(Rot);
 	tree->SetModelScale(Scale);
 	tree->SetTransform(Matrix4::Translation(Pos) * tree->GetRotationMatrix() * Matrix4::Scale(tree->GetModelScale()));
 	parent->AddChild(tree);
 }
 
-void Renderer::LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, SceneNode* parent)
+void Renderer::LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent)
 {
 	if (FileHandler::FileExists(fileName))
 	{
@@ -204,14 +227,13 @@ void Renderer::LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* 
 		FileHandler::ReadPropDataFromFile(fileName, posV, rotV, scaleV);
 
 		for (int i = 0; i < posV.size(); i++)
-			NewTreeProp(m, mMat, posV[i], rotV[i], scaleV[i], parent);
+			NewTreeProp(m, mMat, posV[i], rotV[i], scaleV[i], parent, isTransparent);
 	}
 	else
-		NewTreeProp(m, mMat, parent);
+		NewTreeProp(m, mMat, parent, isTransparent);
 }
 
-
-
+//------------------------------------------------------------------
 
 void Renderer::UpdateScene(float dt) 
 {
@@ -443,6 +465,102 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(CASTLEFILE, nodePosV, nodeRotV, nodeScaleV);
 		}
 	}
+	if (ImGui::CollapsingHeader("Castle Pillar"))
+	{
+		for (int i = 0; i < castlePillarParentNode->GetChildCount() && (castlePillarParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = castlePillarParentNode->GetChild(i);
+			ImGui::Text((std::string("Pillar[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+		if (ImGui::Button("New Castle Pillar"))
+			NewTreeProp(castlePillarMesh, castlePillarMaterial, castlePillarParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save CastlePillarProp.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < castlePillarParentNode->GetChildCount() && (castlePillarParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = castlePillarParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(CASTLEPILLARFILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
+	if (ImGui::CollapsingHeader("Castle Bridge"))
+	{
+		for (int i = 0; i < castleBridgeParentNode->GetChildCount() && (castleBridgeParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = castleBridgeParentNode->GetChild(i);
+			ImGui::Text((std::string("Bridge[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save CastleBridge.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < castleBridgeParentNode->GetChildCount() && (castleBridgeParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = castleBridgeParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(CASTLEBRIDGEFILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
 	if (ImGui::CollapsingHeader("Ruins"))
 	{
 		for (int i = 0; i < ruinsParentNode->GetChildCount() && (ruinsParentNode->GetChildCount() > 0); i++)
@@ -498,13 +616,24 @@ void Renderer::UpdateImGui()
 
 void Renderer::RenderScene()	
 {
-	glClearColor(0.2f,0.2f,0.2f,1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (blendFix)
+	{
+		BuildNodeLists(rootNode);
+		SortNodeLists();
+	}
 
+	//glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	//DrawMainTerrain();	
 	//UpdateShaderMatrices();
-	DrawNode(rootNode);
+	if (blendFix)
+	{
+		DrawNodes();
+		ClearNodeLists();
+	}
+	else
+		DrawNode(rootNode);
 
 	UpdateImGui();
 }
@@ -523,7 +652,36 @@ void Renderer::RenderScene()
 //}  
 #pragma endregion
 
-void Renderer::DrawNode(SceneNode* n)
+void Renderer::BuildNodeLists(SceneNode* from)
+{
+	Vector3 dir = from->GetWorldTransform().GetPositionVector() - cameraMain->getPosition();
+	from->SetCameraDistance(Vector3::Dot(dir, dir));
+
+	if (from->GetColour().w < 1.0f)
+		transparentNodesList.push_back(from);
+	else
+		opaqueNodesList.push_back(from);
+
+	for (vector<SceneNode*>::const_iterator i = from->GetChildIteratorStart(); i != from->GetChildIteratorEnd(); ++i)
+		BuildNodeLists((*i));
+}
+
+void Renderer::SortNodeLists()
+{
+	std::sort(transparentNodesList.rbegin(), transparentNodesList.rend(), SceneNode::CompareByCameraDistance);
+	std::sort(opaqueNodesList.begin(), opaqueNodesList.end(), SceneNode::CompareByCameraDistance);
+}
+
+void Renderer::DrawNodes()
+{
+	for (const auto& i : opaqueNodesList)
+		DrawNode(i, false);
+
+	for (const auto& i : transparentNodesList)
+		DrawNode(i, false);
+}
+
+void Renderer::DrawNode(SceneNode* n, bool includingChild)
 {
 	if (n->GetMesh())
 	{
@@ -534,8 +692,17 @@ void Renderer::DrawNode(SceneNode* n)
 		n->Draw(*this);
 	}
 	
-	for (std::vector<SceneNode*>::const_iterator i = n->GetChildIteratorStart(); i != n->GetChildIteratorEnd(); ++i)
-		DrawNode(*i);
+	if (includingChild)
+	{
+		for (std::vector<SceneNode*>::const_iterator i = n->GetChildIteratorStart(); i != n->GetChildIteratorEnd(); ++i)
+			DrawNode(*i);
+	}
+}
+
+void Renderer::ClearNodeLists()
+{
+	transparentNodesList.clear();
+	opaqueNodesList.clear();
 }
 
 //void Renderer::DrawRocks2()
