@@ -26,15 +26,13 @@ TreePropNode::TreePropNode(Mesh* m, MeshMaterial* treeMat, Shader* s, const std:
 
 void TreePropNode::Draw(const OGLRenderer& r)
 {
-	glUniform1i(glGetUniformLocation(shader->GetProgram(), "diffuseTex"), 0);
-	glUniform1i(glGetUniformLocation(shader->GetProgram(), "bumpTex"), 1);
+	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "diffuseTex"), 0);
+	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "bumpTex"), 1);
 	for (int i = 0; i < mesh->GetSubMeshCount(); i++)
 	{
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, matTextures[i]);
+		OGLRenderer::BindTexture(matTextures[i], 0, "diffuseTex", shader);
+		OGLRenderer::BindTexture(matBumpTextures[i], 1, "bumpTex", shader);
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, matBumpTextures[i]);
 		mesh->DrawSubMesh(i);
 	}
 }

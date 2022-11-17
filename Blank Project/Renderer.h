@@ -3,7 +3,7 @@
 #include "TerrainNode.h"
 #include "RockNode.h"
 #include "TreePropNode.h"
-#include "AnimNode.h"
+#include "AnimMeshNode.h"
 #include "FileHandler.h"
 #include "Skybox.h"
 
@@ -99,6 +99,44 @@ protected:
 	MeshMaterial* ruinsMaterial;
 	TreePropNode* ruinsPropNode;
 	//--------------------------------------------------------------------
+	
+	//--------------------------------------------------------------------
+	//Crystals
+	SceneNode* crystals1ParentNode;
+	SceneNode* crystals2ParentNode;
+
+	Mesh* crystal1Mesh;
+	Mesh* crystal2Mesh;
+
+	MeshMaterial* crystal1Material;
+	MeshMaterial* crystal2Material;
+
+	TreePropNode* crystal1PropNode;
+	TreePropNode* crystal2PropNode;
+	//--------------------------------------------------------------------
+	
+	//Monsters
+	Shader* skeletalAnimShader;
+	
+	SceneNode* monsterDudeParentNode;
+	Mesh* monsterDudeMesh;
+	MeshAnimation* monsterDudeAnim;
+	MeshMaterial* monsterDudeMaterial;
+	AnimMeshNode* monsterDudeNode;
+
+	SceneNode* monsterCrabParentNode;
+	Mesh* monsterCrabMesh;
+	MeshAnimation* monsterCrabAnim;
+	MeshMaterial* monsterCrabMaterial;
+	AnimMeshNode* monsterCrabNode;
+
+	void NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, SceneNode* parent, bool isTransparent = false);
+	void NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent, bool isTransparent = false);
+	void LoadAnimNodeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, SceneNode* parent, bool isTransparent = false);
+
+	//--------------------------------------------------------------------
+	// 
+	//--------------------------------------------------------------------
 
 	//Lights
 	DirectionalLight* dirLight;
@@ -108,10 +146,19 @@ protected:
 	//Light* allPointLights;
 
 	//--------------------------------------------------------------------
+	
+	//--------------------------------------------------------------------
 
 	//Cubemap
+	Mesh* quad;
 	Skybox* skybox;
 	void DrawSkybox();
+
+	//Water
+	Shader* reflectShader;
+	GLuint waterTex;
+	Vector3 waterPosition = Vector3(0, 0, 0);
+	void DrawWater();
 
 	//Timer
 	GameTimer* timer;

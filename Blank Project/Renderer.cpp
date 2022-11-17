@@ -23,6 +23,7 @@ static std::string _labelPrefix(const char* const label)
 Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 {
 	timer = parent.GetTimer();
+	quad = Mesh::GenerateQuad();
 
 	//-----------------------------------------------------------
 	//Imgui 
@@ -72,6 +73,21 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ruinsParentNode = new SceneNode();
 	ruinsParentNode->nodeName = "RuinsParent";
 	//------------------------------------------------------------------
+	
+	// Crystals
+	crystals1ParentNode = new SceneNode();
+	crystals1ParentNode->nodeName = "Crystal01Parent";
+	crystals2ParentNode = new SceneNode();
+	crystals2ParentNode->nodeName = "Crystal02Parent";
+	//------------------------------------------------------------------
+
+	//Monsters
+	monsterDudeParentNode = new SceneNode();
+	monsterDudeParentNode->nodeName = "MonstersDudeParent";
+
+	monsterCrabParentNode = new SceneNode();
+	monsterCrabParentNode->nodeName = "MonstersCrabParent";
+	//------------------------------------------------------------------
 
 	
 	rootNode->AddChild(terrainNode);
@@ -83,6 +99,10 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	terrainNode->AddChild(castleArchParentNode);
 	terrainNode->AddChild(castleBridgeParentNode);
 	terrainNode->AddChild(ruinsParentNode);
+	terrainNode->AddChild(crystals1ParentNode);
+	terrainNode->AddChild(crystals2ParentNode);
+	terrainNode->AddChild(monsterDudeParentNode);
+	terrainNode->AddChild(monsterCrabParentNode);
 
 	terrainHeightmapSize = terrainNode->GetHeightmapSize();
 	cameraMain = new Camera();
@@ -146,6 +166,31 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ruinsMaterial = new MeshMaterial(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.mat", true);
 	LoadTreeData(RUINSFILE, ruinsMesh, ruinsMaterial, ruinsParentNode);
 
+	//Crystals
+	crystal1Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Crystals/Mesh_Crystal_01.msh");
+	crystal2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Crystals/Mesh_Crystal_02.msh");
+
+	crystal1Material = new MeshMaterial(MESHDIRCOURSE"Crystals/Mesh_Crystal_01.mat", true);
+	crystal2Material = new MeshMaterial(MESHDIRCOURSE"Crystals/Mesh_Crystal_02.mat", true);
+	LoadTreeData(CRYSTAL01FILE, crystal1Mesh, crystal1Material, crystals1ParentNode);
+	LoadTreeData(CRYSTAL02FILE, crystal2Mesh, crystal2Material, crystals2ParentNode);
+
+	//Monsters
+	//Ghoul
+	skeletalAnimShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
+
+	//Dude
+	monsterDudeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Monsters/Monster_Dude.msh");
+	monsterDudeMaterial = new MeshMaterial(MESHDIRCOURSE"Monsters/Monster_Dude.mat", true);
+	monsterDudeAnim = new MeshAnimation(MESHDIRCOURSE"Monsters/Monster_Dude.anm", true);
+	LoadAnimNodeData(MONSTERDUDEFILE, monsterDudeMesh, monsterDudeMaterial, monsterDudeAnim, monsterDudeParentNode, false);
+
+	//Crab
+	monsterCrabMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Monsters/Monster_Crab.msh");
+	monsterCrabMaterial = new MeshMaterial(MESHDIRCOURSE"Monsters/Monster_Crab.mat", true);
+	monsterCrabAnim = new MeshAnimation(MESHDIRCOURSE"Monsters/Monster_Crab.anm", true);
+	LoadAnimNodeData(MONSTERCRABFILE, monsterCrabMesh, monsterCrabMaterial, monsterCrabAnim, monsterCrabParentNode, false);
+	
 	//Lights
 	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
@@ -162,6 +207,13 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 
 	//Skybox Cubemap
 	skybox = new Skybox();
+
+	//Water
+	reflectShader = new Shader(SHADERDIRCOURSETERRAIN"CWReflectVertex.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragment.glsl");
+	waterTex = SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	waterPosition.x = terrainHeightmapSize.x * 0.5f;
+	waterPosition.y = terrainHeightmapSize.y * 0.2355f;
+	waterPosition.z = terrainHeightmapSize.z * 0.5f;
 	
 	//Fog
 	if (FileHandler::FileExists(FOGDATAFILE))
@@ -176,6 +228,8 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -268,6 +322,43 @@ void Renderer::LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* 
 	}
 	else
 		NewTreeProp(m, mMat, parent, isTransparent);
+}
+
+//------------------------------------------------------------------
+
+void Renderer::NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, SceneNode* parent, bool isTransparent)
+{
+	AnimMeshNode* anim = new AnimMeshNode(skeletalAnimShader, m, mAnim, mMat, TEXTUREDIR);
+	if (isTransparent)
+		anim->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
+	anim->SetModelScale(Vector3(6.0f, 6.0f, 6.0f));
+	anim->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * anim->GetRotationMatrix() * Matrix4::Scale(anim->GetModelScale()));
+	parent->AddChild(anim);
+}
+
+void Renderer::NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent, bool isTransparent)
+{
+	AnimMeshNode* anim = new AnimMeshNode(skeletalAnimShader, m, mAnim, mMat, TEXTUREDIR);
+	if (isTransparent)
+		anim->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
+	anim->SetModelRotation(Rot);
+	anim->SetModelScale(Scale);
+	anim->SetTransform(Matrix4::Translation(Pos) * anim->GetRotationMatrix() * Matrix4::Scale(anim->GetModelScale()));
+	parent->AddChild(anim);
+}
+
+void Renderer::LoadAnimNodeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim, SceneNode* parent, bool isTransparent)
+{
+	if (FileHandler::FileExists(fileName))
+	{
+		std::vector<Vector3> posV, rotV, scaleV;
+		FileHandler::ReadPropDataFromFile(fileName, posV, rotV, scaleV);
+
+		for (int i = 0; i < posV.size(); i++)
+			NewAnimNodeProp(m, mMat, mAnim, posV[i], rotV[i], scaleV[i], parent, isTransparent);
+	}
+	else
+		NewAnimNodeProp(m, mMat, mAnim, parent, isTransparent);
 }
 
 //------------------------------------------------------------------
@@ -710,6 +801,202 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(RUINSFILE, nodePosV, nodeRotV, nodeScaleV);
 		}
 	}
+	if (ImGui::CollapsingHeader("Crystals 01"))
+	{
+		for (int i = 0; i < crystals1ParentNode->GetChildCount() && (crystals1ParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = crystals1ParentNode->GetChild(i);
+			ImGui::Text((std::string("Crys1[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+		if (ImGui::Button("New Crystal 01"))
+			NewTreeProp(crystal1Mesh, crystal1Material, crystals1ParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save Crystal01.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < crystals1ParentNode->GetChildCount() && (crystals1ParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = crystals1ParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(CRYSTAL01FILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
+	if (ImGui::CollapsingHeader("Crystals 02"))
+	{
+		for (int i = 0; i < crystals2ParentNode->GetChildCount() && (crystals2ParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = crystals2ParentNode->GetChild(i);
+			ImGui::Text((std::string("Crys2[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+		if (ImGui::Button("New Crystal 02"))
+			NewTreeProp(crystal2Mesh, crystal2Material, crystals2ParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save Crystal02.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < crystals2ParentNode->GetChildCount() && (crystals2ParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = crystals2ParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(CRYSTAL02FILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
+	if (ImGui::CollapsingHeader("Monster - Dude"))
+	{
+		for (int i = 0; i < monsterDudeParentNode->GetChildCount() && (monsterDudeParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = monsterDudeParentNode->GetChild(i);
+			ImGui::Text((std::string("Dude[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+		if (ImGui::Button("New Monster Dude"))
+			NewAnimNodeProp(monsterDudeMesh, monsterDudeMaterial, monsterDudeAnim, monsterDudeParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save MonsterDude.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < monsterDudeParentNode->GetChildCount() && (monsterDudeParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = monsterDudeParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(MONSTERDUDEFILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
+	if (ImGui::CollapsingHeader("Monster - Crabs"))
+	{
+		for (int i = 0; i < monsterCrabParentNode->GetChildCount() && (monsterCrabParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = monsterCrabParentNode->GetChild(i);
+			ImGui::Text((std::string("Crab[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+		if (ImGui::Button("New Monster Crab"))
+			NewAnimNodeProp(monsterCrabMesh, monsterCrabMaterial, monsterCrabAnim, monsterCrabParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save MonsterCrab.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < monsterCrabParentNode->GetChildCount() && (monsterCrabParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = monsterCrabParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(MONSTERCRABFILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
 	if (ImGui::CollapsingHeader("Lights"))
 	{
 		Vector3 lightDir = dirLight->GetLightDir();
@@ -769,6 +1056,10 @@ void Renderer::UpdateImGui()
 		if (ImGui::Button("Save FogData.sav"))
 			FileHandler::SaveFogFile(FOGDATAFILE, enableFog, fogColour);
 	}
+	if (ImGui::CollapsingHeader("Water"))
+	{
+		ImGui::DragFloat3(_labelPrefix(std::string("Water Position").c_str()).c_str(), (float*)&waterPosition);
+	}
 
 	ImGui::ShowDemoWindow();
 	ImGui::Render();
@@ -795,7 +1086,7 @@ void Renderer::RenderScene()
 		ClearNodeLists();
 	}
 	else
-		DrawNode(rootNode);
+		DrawNode(rootNode);	
 
 	UpdateImGui();
 }
@@ -810,7 +1101,7 @@ void Renderer::DrawSkybox()
 	BindShader(skybox->GetSkyboxShader());
 	UpdateShaderMatrices();
 
-	skybox->Draw();
+	quad->Draw();
 
 	glDepthMask(GL_TRUE);
 }
@@ -853,7 +1144,7 @@ void Renderer::DrawNodes()
 {
 	for (const auto& i : opaqueNodesList)
 		DrawNode(i, false);
-
+	DrawWater();
 	for (const auto& i : transparentNodesList)
 		DrawNode(i, false);
 }
@@ -863,7 +1154,6 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 	if (n->GetMesh())
 	{
 		BindShader(n->GetShader());
-		Shader* tempShader = n->GetShader();
 		modelMatrix = n->GetWorldTransform() * Matrix4::Scale(n->GetModelScale());
 
 		UpdateShaderMatrices();
@@ -913,10 +1203,54 @@ void Renderer::ClearNodeLists()
 	opaqueNodesList.push_back(terrainNode);
 }
 
-//void Renderer::DrawRocks2()
-//{
-//	BindShader(rocksShader);
-//	UpdateShaderMatrices();
-//	OGLRenderer::BindTexture(rockNode->GetTexture(), 0, "diffuseTex", rocksShader);
-//	rockNode->Draw(*this);
-//}
+void Renderer::DrawWater()
+{
+	glDisable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
+	BindShader(reflectShader);
+
+	glUniform3fv(glGetUniformLocation(reflectShader->GetProgram(), "cameraPos"), 1, (float*)&cameraMain->getPosition());
+	glUniform3fv(glGetUniformLocation(reflectShader->GetProgram(), "lightDir"), 1, (float*)&dirLight->GetLightDir());
+	glUniform4fv(glGetUniformLocation(reflectShader->GetProgram(), "lightDirColour"), 1, (float*)&dirLight->GetColour());
+	glUniform1f(glGetUniformLocation(reflectShader->GetProgram(), "lightDirIntensity"), dirLight->GetIntensity());
+	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "enableFog"), enableFog);
+	glUniform4fv(glGetUniformLocation(reflectShader->GetProgram(), "fogColour"), 1, (float*)&fogColour);
+	SetShaderLight(*dirLight);		//Sun
+
+	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "numPointLights"), numPointLights);
+	for (size_t i = 0; i < allPointLights.size() && (numPointLights > 0); i++)
+	{
+		Light& l = allPointLights[i];
+
+		std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
+		std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
+		std::string lightSpecularColourName = "pointLightSpecularColour[" + std::to_string(i) + "]";
+		std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
+		std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
+
+		glUniform3fv(glGetUniformLocation(reflectShader->GetProgram(), lightPosName.c_str()), 1, (float*)&l.GetPosition());
+		glUniform4fv(glGetUniformLocation(reflectShader->GetProgram(), lightColorName.c_str()), 1, (float*)&l.GetColour());
+		glUniform4fv(glGetUniformLocation(reflectShader->GetProgram(), lightSpecularColourName.c_str()), 1, (float*)&l.GetSpecularColour());
+		glUniform1f(glGetUniformLocation(reflectShader->GetProgram(), lightRadiusName.c_str()), l.GetRadius());
+		glUniform1f(glGetUniformLocation(reflectShader->GetProgram(), lightIntensityName.c_str()), l.GetIntensity());
+	}
+
+	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "diffuseTex"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, waterTex);
+
+	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "cubeTex"), 2);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxCube());
+
+	modelMatrix = Matrix4::Translation(waterPosition) * Matrix4::Scale(terrainHeightmapSize * 0.5f) * Matrix4::Rotation(-90.0f, Vector3(1, 0, 0));
+	//textureMatrix = Matrix4::Translation(Vector3(waterCycle, 0.0f, waterCycle)) * Matrix4::Scale(Vector3(10, 10, 10)) * Matrix4::Rotation(waterRotate, Vector3(0, 0, 1));
+
+	UpdateShaderMatrices();
+
+	quad->Draw();
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+}

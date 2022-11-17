@@ -40,6 +40,42 @@ MeshAnimation::MeshAnimation(const std::string& filename) : MeshAnimation() {
 	}
 }
 
+MeshAnimation::MeshAnimation(const std::string& filename, bool ignoreMeshDir) : MeshAnimation()
+{
+	std::string filePath;
+	if (ignoreMeshDir)
+		filePath = filename;
+	else
+		filePath = MESHDIR + filename;
+	std::ifstream file(filePath);
+
+	std::string filetype;
+	int fileVersion;
+
+	file >> filetype;
+
+	if (filetype != "MeshAnim") {
+		std::cout << "File is not a MeshAnim file!" << std::endl;
+		return;
+	}
+	file >> fileVersion;
+	file >> frameCount;
+	file >> jointCount;
+	file >> frameRate;
+
+	allJoints.reserve(frameCount * jointCount);
+
+	for (unsigned int f = 0; f < frameCount; ++f) {
+		for (unsigned int j = 0; j < jointCount; ++j) {
+			Matrix4 mat;
+			for (int i = 0; i < 16; ++i) {
+				file >> mat.values[i];
+			}
+			allJoints.emplace_back(mat);
+		}
+	}
+}
+
 MeshAnimation::~MeshAnimation() {
 
 }

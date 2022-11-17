@@ -2,7 +2,6 @@
 #include <glad/glad.h>
 
 class Shader;
-class Mesh;
 
 class Skybox
 {
@@ -11,10 +10,9 @@ public:
 	~Skybox();
 	
 	Shader* GetSkyboxShader() { return skyboxShader; }
-	void Draw();
+	GLuint GetSkyboxCube() { return skyboxTex; }
 
 protected:
-	Mesh* quad;
 	Shader* skyboxShader;
 	GLuint skyboxTex;
 };

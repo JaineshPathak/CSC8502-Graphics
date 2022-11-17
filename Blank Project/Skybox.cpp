@@ -1,10 +1,8 @@
 #include "Skybox.h"
-#include "../nclgl/Mesh.h"
 #include "../nclgl/Shader.h"
 
 Skybox::Skybox()
 {
-	quad = Mesh::GenerateQuad();
 	skyboxShader = new Shader("skyboxVertex.glsl", "skyboxFragment.glsl");
 	skyboxTex = SOIL_load_OGL_cubemap(
 		TEXTUREDIR"rusted_west.jpg", TEXTUREDIR"rusted_east.jpg",
@@ -15,14 +13,7 @@ Skybox::Skybox()
 
 Skybox::~Skybox()
 {
-	delete quad;
 	delete skyboxShader;
 	
 	glDeleteTextures(1, &skyboxTex);
-}
-
-void Skybox::Draw()
-{
-	if(quad != nullptr)
-		quad->Draw();
 }

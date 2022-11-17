@@ -136,7 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AnimNode.cpp" />
+    <ClCompile Include="AnimMeshNode.cpp" />
     <ClCompile Include="FileHandler.cpp" />
     <ClCompile Include="LightPointNode.cpp" />
     <ClCompile Include="main.cpp" />
@@ -146,9 +146,10 @@
     <ClCompile Include="TerrainHeightmap.cpp" />
     <ClCompile Include="TerrainNode.cpp" />
     <ClCompile Include="TreePropNode.cpp" />
+    <ClCompile Include="Water.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AnimNode.h" />
+    <ClInclude Include="AnimMeshNode.h" />
     <ClInclude Include="FileHandler.h" />
     <ClInclude Include="LightPointNode.h" />
     <ClInclude Include="Renderer.h" />
@@ -157,6 +158,7 @@
     <ClInclude Include="TerrainHeightmap.h" />
     <ClInclude Include="TerrainNode.h" />
     <ClInclude Include="TreePropNode.h" />
+    <ClInclude Include="Water.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
