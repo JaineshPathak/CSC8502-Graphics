@@ -136,6 +136,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AnimNode.cpp" />
     <ClCompile Include="FileHandler.cpp" />
     <ClCompile Include="LightPointNode.cpp" />
     <ClCompile Include="main.cpp" />
@@ -147,6 +148,7 @@
     <ClCompile Include="TreePropNode.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimNode.h" />
     <ClInclude Include="FileHandler.h" />
     <ClInclude Include="LightPointNode.h" />
     <ClInclude Include="Renderer.h" />

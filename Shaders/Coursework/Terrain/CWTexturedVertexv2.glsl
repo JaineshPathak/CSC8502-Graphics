@@ -3,6 +3,7 @@
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
+uniform int enableFog;
 
 in vec3 position;
 in vec4 colour;
@@ -18,7 +19,12 @@ out Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+
+	float visibility;
 } OUT;
+
+const float density = 0.00015f;
+const float gradient = 1.5f;
 
 void main(void)
 {
@@ -36,7 +42,15 @@ void main(void)
 
 	vec4 worldPos = (modelMatrix * vec4(position, 1));
 
+	vec4 posRelativeToCam = viewMatrix * worldPos;
 	OUT.worldPos = worldPos.xyz;
 
 	gl_Position = (projMatrix * viewMatrix) * worldPos;
+
+	if(enableFog == 1)
+	{
+		float distance = length(posRelativeToCam.xyz);
+		OUT.visibility = exp(-pow((distance * density), gradient));
+		OUT.visibility = clamp(OUT.visibility, 0.0, 1.0);
+	}
 }

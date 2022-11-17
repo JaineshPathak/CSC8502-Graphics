@@ -1,0 +1,28 @@
+1 1 0
+1 0.870372 0.729412 1
+1
+4550 833 1880
+4360 833 1880
+4461 441.5 1936
+2909 434.5 5620
+EndPointLightPos
+1 0 0 0
+1 0 0 0
+0 1 0 0
+1 0.5 0 0
+EndPointLightColour
+0 0 0 0
+0 0 0 0
+1 1 1 1
+1 1 1 1
+EndPointLightSpecularColour
+50
+50
+255
+727
+EndPointLightRadius
+8
+8
+5
+3
+EndPointLightIntensity

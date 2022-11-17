@@ -18,7 +18,7 @@ public:
 		this->radius = 0;
 	}
 
-	inline Vector3 GetLightDir() { return lightDir; }
+	inline Vector3 GetLightDir() const { return lightDir; }
 	inline void SetLightDir(const Vector3& dir) { lightDir = dir; }
 
 protected:

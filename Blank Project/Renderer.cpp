@@ -60,6 +60,9 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 
 	castlePillarParentNode = new SceneNode();
 	castlePillarParentNode->nodeName = "CastlePillarsParent";
+
+	castleArchParentNode = new SceneNode();
+	castleArchParentNode->nodeName = "CastleArchParent";
 	
 	castleBridgeParentNode = new SceneNode();
 	castleBridgeParentNode->nodeName = "CastleBridgeParent";
@@ -77,6 +80,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	terrainNode->AddChild(treesParentNode);
 	terrainNode->AddChild(castleParentNode);
 	terrainNode->AddChild(castlePillarParentNode);
+	terrainNode->AddChild(castleArchParentNode);
 	terrainNode->AddChild(castleBridgeParentNode);
 	terrainNode->AddChild(ruinsParentNode);
 
@@ -102,15 +106,15 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	basicDiffuseShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	
 	//Rocks
-	rock2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock2.msh");
+	rock2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
 	rock5aMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5A.msh");
-	rockMaterial = new MeshMaterial(MESHDIRCOURSE"Rocks/Mesh_Rock5A.mat", true);
+	rockMaterial = new MeshMaterial(MESHDIRCOURSE"Rocks/Mesh_Rock5D.mat", true);
 	//rockTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	
 	//LoadRockData(ROCK2FILE, rock2Mesh, rockTexture, rocks2ParentNode);		//Rock2
 	//LoadRockData(ROCK5AFILE, rock5aMesh, rockTexture, rocks5aParentNode);		//Rock5a
 	LoadTreeData(ROCK2FILE, rock2Mesh, rockMaterial, rocks2ParentNode);
-	LoadTreeData(ROCK5AFILE, rock5aMesh, rockMaterial, rocks5aParentNode);
+	//LoadTreeData(ROCK5AFILE, rock5aMesh, rockMaterial, rocks5aParentNode);
 
 	//Trees
 	treeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Trees/Tree_01.msh");
@@ -127,6 +131,11 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	castlePillarMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastlePillar.mat", true);
 	LoadTreeData(CASTLEPILLARFILE, castlePillarMesh, castlePillarMaterial, castlePillarParentNode);
 
+	//Castle Arch
+	castleArchMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastleArch.msh");
+	castleArchMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastleArch.mat", true);
+	LoadTreeData(CASTLEARCHFILE, castleArchMesh, castleArchMaterial, castleArchParentNode);
+
 	//Castle Bridge
 	castleBridgeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
 	castleBridgeMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_Bridge.mat", true);
@@ -139,9 +148,24 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 
 	//Lights
 	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
+	if (FileHandler::FileExists(LIGHTSDATAFILE))
+	{
+		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
+		if (allPointLights.size() > 0)
+			numPointLights = allPointLights.size();
+	}
+	else
+	{
+		for (int i = 0; i < numPointLights && (numPointLights > 0); i++)
+			CreateNewPointLight();
+	}
 
 	//Skybox Cubemap
 	skybox = new Skybox();
+	
+	//Fog
+	if (FileHandler::FileExists(FOGDATAFILE))
+		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
 
 	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
 	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
@@ -244,6 +268,19 @@ void Renderer::LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* 
 	}
 	else
 		NewTreeProp(m, mMat, parent, isTransparent);
+}
+
+//------------------------------------------------------------------
+
+void Renderer::CreateNewPointLight()
+{
+	Light* l = new Light();
+	l->SetPosition(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f));
+	l->SetColour(Vector4(1.0f, 0.0f, 0.0f, 0.0f));
+	l->SetRadius(terrainHeightmapSize.x * 0.2f);
+
+	allPointLights.push_back(*l);
+	numPointLights = allPointLights.size();
 }
 
 //------------------------------------------------------------------
@@ -417,7 +454,7 @@ void Renderer::UpdateImGui()
 		}
 
 		if (ImGui::Button("New Tree Prop"))
-			NewTreeProp(treeMesh, treeMaterial, treesParentNode);
+			NewTreeProp(treeMesh, treeMaterial, treesParentNode, true);
 
 		ImGui::SameLine();
 		if (ImGui::Button("Save TreesProp.sav"))
@@ -576,6 +613,56 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(CASTLEBRIDGEFILE, nodePosV, nodeRotV, nodeScaleV);
 		}
 	}
+	if (ImGui::CollapsingHeader("Castle Arch"))
+	{
+		for (int i = 0; i < castleArchParentNode->GetChildCount() && (castleArchParentNode->GetChildCount() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			SceneNode* node = castleArchParentNode->GetChild(i);
+			ImGui::Text((std::string("Arch[") + indexStr + "]:").c_str());
+
+			Vector3 nodePos = node->GetWorldTransform().GetPositionVector();
+			Vector3 nodeScale = node->GetModelScale();
+			Vector3 nodeRotation = node->GetModelRotation();
+
+			//Position
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Position[" + indexStr + "]").c_str()).c_str(), (float*)&nodePos))
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+
+			//Rotation
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Rotation[" + indexStr + "]").c_str()).c_str(), (float*)&nodeRotation))
+			{
+				node->SetModelRotation(nodeRotation);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			//Scaling
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Scale[" + indexStr + "]").c_str()).c_str(), (float*)&nodeScale))
+			{
+				node->SetModelScale(nodeScale);
+				node->SetTransform(Matrix4::Translation(nodePos) * node->GetRotationMatrix() * Matrix4::Scale(node->GetModelScale()));
+			}
+
+			ImGui::Separator();
+		}
+
+		if (ImGui::Button("New Castle Arch"))
+			NewTreeProp(castleArchMesh, castleArchMaterial, castleArchParentNode, false);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save CastleArchProp.sav"))
+		{
+			std::vector<Vector3> nodePosV, nodeRotV, nodeScaleV;
+			for (int i = 0; i < castleArchParentNode->GetChildCount() && (castleArchParentNode->GetChildCount() > 0); i++)
+			{
+				SceneNode* node = castleArchParentNode->GetChild(i);
+				nodePosV.emplace_back(node->GetWorldTransform().GetPositionVector());
+				nodeRotV.emplace_back(node->GetModelRotation());
+				nodeScaleV.emplace_back(node->GetModelScale());
+			}
+			FileHandler::SavePropDataToFile(CASTLEARCHFILE, nodePosV, nodeRotV, nodeScaleV);
+		}
+	}
 	if (ImGui::CollapsingHeader("Ruins"))
 	{
 		for (int i = 0; i < ruinsParentNode->GetChildCount() && (ruinsParentNode->GetChildCount() > 0); i++)
@@ -623,7 +710,7 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(RUINSFILE, nodePosV, nodeRotV, nodeScaleV);
 		}
 	}
-	if (ImGui::CollapsingHeader("Directional Light"))
+	if (ImGui::CollapsingHeader("Lights"))
 	{
 		Vector3 lightDir = dirLight->GetLightDir();
 		Vector4 lightDirColor = dirLight->GetColour();
@@ -632,6 +719,55 @@ void Renderer::UpdateImGui()
 
 		if (ImGui::SliderFloat4(_labelPrefix(std::string("Colour").c_str()).c_str(), (float*)&lightDirColor, 0.0f, 1.0f))
 			dirLight->SetColour(lightDirColor);
+
+		float lightIntensity = dirLight->GetIntensity();
+		if (ImGui::SliderFloat(_labelPrefix(std::string("Intensity").c_str()).c_str(), &lightIntensity, 0.0f, 10.0f))
+			dirLight->SetIntensity(lightIntensity);
+
+		ImGui::Separator();
+
+		for (int i = 0; i < allPointLights.size() && (allPointLights.size() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			Light& pLight = allPointLights[i];
+			Vector3 pLightPos = pLight.GetPosition();
+			Vector4 pLightColour = pLight.GetColour();
+			Vector4 pLightSpecColour = pLight.GetSpecularColour();
+			float pLightRadius = pLight.GetRadius();
+			float pLightIntensity = pLight.GetIntensity();
+
+			if (ImGui::DragFloat3(_labelPrefix(std::string("Light Pos[" + indexStr + "]").c_str()).c_str(), (float*)&pLightPos))
+				pLight.SetPosition(pLightPos);
+
+			if (ImGui::SliderFloat4(_labelPrefix(std::string("Light Col[" + indexStr + "]").c_str()).c_str(), (float*)&pLightColour, 0.0f, 1.0f))
+				pLight.SetColour(pLightColour);
+
+			if (ImGui::SliderFloat4(_labelPrefix(std::string("Light Spec Col[" + indexStr + "]").c_str()).c_str(), (float*)&pLightSpecColour, 0.0f, 1.0f))
+				pLight.SetSpecularColour(pLightSpecColour);
+
+			if(ImGui::DragFloat(_labelPrefix(std::string("Light Radius[" + indexStr + "]").c_str()).c_str(), &pLightRadius))
+				pLight.SetRadius(pLightRadius);
+
+			if (ImGui::DragFloat(_labelPrefix(std::string("Light Intensity[" + indexStr + "]").c_str()).c_str(), &pLightIntensity))
+				pLight.SetIntensity(pLightIntensity);
+
+			ImGui::Separator();
+		}
+
+		if (ImGui::Button("New Point Light"))
+			CreateNewPointLight();
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save LightsData.sav"))
+			FileHandler::SaveLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
+	}
+	if (ImGui::CollapsingHeader("Fog"))
+	{
+		ImGui::Checkbox(_labelPrefix(std::string("Enable Fog").c_str()).c_str(), &enableFog);
+		ImGui::SliderFloat4(_labelPrefix(std::string("Fog Colour").c_str()).c_str(), (float*)&fogColour, 0.0f, 1.0f);
+
+		if (ImGui::Button("Save FogData.sav"))
+			FileHandler::SaveFogFile(FOGDATAFILE, enableFog, fogColour);
 	}
 
 	ImGui::ShowDemoWindow();
@@ -735,7 +871,29 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "cameraPos"), 1, (float*)&cameraMain->getPosition());
 		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDir"), 1, (float*)&dirLight->GetLightDir());
 		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirColour"), 1, (float*)&dirLight->GetColour());
+		glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirIntensity"), dirLight->GetIntensity());
+		glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "enableFog"), enableFog);
+		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "fogColour"), 1, (float*)&fogColour);
 		SetShaderLight(*dirLight);		//Sun
+
+		glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "numPointLights"), numPointLights);
+		for (size_t i = 0; i < allPointLights.size() && (numPointLights > 0); i++)
+		{
+			Light& l = allPointLights[i];
+
+			std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
+			std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
+			std::string lightSpecularColourName = "pointLightSpecularColour[" + std::to_string(i) + "]";
+			std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
+			std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
+
+			glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightPosName.c_str()), 1, (float*)&l.GetPosition());
+			glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightColorName.c_str()), 1, (float*)&l.GetColour());
+			glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightSpecularColourName.c_str()), 1, (float*)&l.GetSpecularColour());
+			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightRadiusName.c_str()), l.GetRadius());
+			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightIntensityName.c_str()), l.GetIntensity());
+		}
+
 		n->Draw(*this);
 		
 		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "modelMatrix"), 1, false, model.values);

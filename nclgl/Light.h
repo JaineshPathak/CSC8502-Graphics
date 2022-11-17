@@ -43,10 +43,14 @@ public:
 	float GetRadius() const { return radius; }
 	void SetRadius(float val) { radius = val; }
 
+	float GetIntensity() const { return intensity; }
+	void SetIntensity(float val) { intensity = val; }
+
 protected:
 	LIGHT_TYPE lightType = TYPE_POINTLIGHT;
 	Vector3 position;
 	Vector4 colour;
 	Vector4 specularColour;
 	float radius;
+	float intensity = 1.0f;
 };

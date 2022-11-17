@@ -11,19 +11,23 @@ uniform vec3 cameraPos;
 //Directional Light
 uniform vec3 lightDir;
 uniform vec4 lightDirColour;
+uniform float lightDirIntensity;
 
 //Point Light
 uniform int numPointLights;
-
 uniform vec3 pointLightPos[50];
 uniform vec4 pointLightColour[50];
 uniform vec4 pointLightSpecularColour[50];
 uniform float pointLightRadius[50];
+uniform float pointLightIntensity[50];
 
 uniform vec4 lightColour;
 uniform vec4 specularColour;
 uniform vec3 lightPos;
 uniform float lightRadius;
+
+uniform int enableFog;
+uniform vec4 fogColour;
 
 uniform float u_time;
 
@@ -35,12 +39,14 @@ in Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+
+	float visibility;
 } IN;
 
 out vec4 fragColour;
 
 vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal);
-vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal);
+vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal);
 
 void main(void)
 {
@@ -77,10 +83,14 @@ void main(void)
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightSpecularColour[i], pointLightPos[i], pointLightRadius[i], viewDir, bumpNormal, diffuseFinal);
+			result += CalcPointLight(pointLightColour[i], pointLightSpecularColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, bumpNormal, diffuseFinal);
 	}
 
 	fragColour = vec4(result, 1.0);
+	if(enableFog == 1)
+	{
+		fragColour = mix(vec4(fogColour.xyz, 1.0f), fragColour, IN.visibility);
+	}
 	//fragColour = vec4(1.0);
 }
 
@@ -99,10 +109,10 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal)
 	vec3 diffuseRGB = lightDirColour.rgb * diffuseFinal.rgb * lambert;
 	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
 
-	return (ambient + diffuseRGB);
+	return (ambient + diffuseRGB) * lightDirIntensity;
 }
 
-vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal)
+vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal)
 {
 	vec3 incident = normalize(_pointLightPos - IN.worldPos);
 	vec3 halfDir = normalize(incident + _viewDir);
@@ -121,9 +131,9 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3
 	vec3 diffuseRGB = _pointLightColour.rgb * _diffuseFinal.rgb * lambert;
 	vec3 specular = _pointLightColour.rgb * (_pointLightSpecularColour.rgb * specFactor);
 
-	ambient *= attenuation;
-	diffuseRGB *= attenuation;
-	specular *= attenuation;
+	ambient *= attenuation * _pointLightIntensity;
+	diffuseRGB *= attenuation * _pointLightIntensity;
+	specular *= attenuation * _pointLightIntensity;
 
 	return (ambient + diffuseRGB);
 }

@@ -3,6 +3,7 @@
 #include "TerrainNode.h"
 #include "RockNode.h"
 #include "TreePropNode.h"
+#include "AnimNode.h"
 #include "FileHandler.h"
 #include "Skybox.h"
 
@@ -76,6 +77,11 @@ protected:
 	Mesh* castlePillarMesh;
 	MeshMaterial* castlePillarMaterial;
 	TreePropNode* castlePillarPropNode;
+
+	SceneNode* castleArchParentNode;
+	Mesh* castleArchMesh;
+	MeshMaterial* castleArchMaterial;
+	TreePropNode* castleArchPropNode;
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -96,6 +102,10 @@ protected:
 
 	//Lights
 	DirectionalLight* dirLight;
+	int numPointLights = 1;
+	std::vector<Light> allPointLights;
+	void CreateNewPointLight();
+	//Light* allPointLights;
 
 	//--------------------------------------------------------------------
 
@@ -105,6 +115,10 @@ protected:
 
 	//Timer
 	GameTimer* timer;
+
+	//Fog
+	bool enableFog = true;
+	Vector4 fogColour = Vector4();
 
 	//void DrawMainTerrain();
 	void DrawNodes();

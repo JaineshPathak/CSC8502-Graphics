@@ -1,73 +1,5 @@
 #include "FileHandler.h"
 
-FileHandler::FileHandler()
-{
-}
-
-FileHandler::FileHandler(std::vector<std::string>& outputSetStr)
-{
-	readOutputSetFile(outputSetStr);
-}
-
-FileHandler::~FileHandler()
-{
-}
-
-void FileHandler::readOutputSetFile(std::vector<std::string>& outputSetStr)
-{
-	std::ifstream fileReader(m_outputSetFilename, std::ios::in);
-	fileReader.exceptions(std::ifstream::badbit);
-	try
-	{
-		if (!fileReader.good())	throw std::ifstream::failure("Probably file doesn't exists or Badbit Error");
-		if (fileReader.peek() == EOF) throw std::ifstream::failure("File is Empty!");
-
-		std::string line/*, finalLine*/;
-		while (std::getline(fileReader, line, '\n'))
-		{
-			line.erase(remove(line.begin(), line.end(), ','), line.end());
-			outputSetStr.push_back(line);
-		}
-		fileReader.close();
-	}
-	catch (std::ifstream::failure& e) {
-		std::cout << "\nException Occured: Failed reading file: " << m_outputSetFilename << "\nMessage: " << e.what();
-	}
-}
-
-void FileHandler::saveFile(const std::vector<int>& outputSet)
-{
-	std::ofstream fileWriter(m_outputSetFilename, std::ios::app);
-	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-	try
-	{
-		for (size_t i = 0; i < outputSet.size(); i++)
-			(i == outputSet.size() - 1) ? fileWriter << outputSet[i] : fileWriter << outputSet[i] << ", ";
-		fileWriter << "\n";
-		fileWriter.close();
-	}
-	catch (std::ofstream::failure& e) {
-		std::cout << "\nException Occured: Failed writing to file: " << m_outputSetFilename << "\nMessage: " << e.what();
-	}
-	std::cout << "\nFile Saved: " << m_outputSetFilename;
-}
-
-void FileHandler::saveFile(const std::string& expressionStr)
-{
-	std::ofstream fileWriter(m_expressionFilename, std::ios::out);
-	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
-	try
-	{
-		fileWriter << expressionStr;
-		fileWriter.close();
-	}
-	catch (std::ofstream::failure& e)
-	{
-		std::cout << "\nException Occured: Failed writing to file: " << m_expressionFilename << "\nMessage: " << e.what();
-	}
-	std::cout << "\nFile Saved: " << m_expressionFilename;
-}
-
 //----------------------------------------------------------------------------------------------------------
 
 bool FileHandler::FileExists(const std::string& fileName)
@@ -169,5 +101,209 @@ void FileHandler::ReadPropDataFromFile(const std::string& fileName, std::vector<
 			//std::cout << "Scale = " << scale << std::endl;
 		}
 	}
+	fileReader.close();
+}
+
+
+
+void FileHandler::SaveFogFile(const std::string& fileName, const bool& fogEnabled, const Vector4& fogColour)
+{
+	std::ofstream fileWriter(fileName, std::ios::out);
+	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+
+	fileWriter << fogEnabled << std::endl;
+	fileWriter << fogColour.x << " " << fogColour.y << " " << fogColour.z << " " << fogColour.w << "\n";
+
+	fileWriter.close();
+	std::cout << "\nFile Saved: " << fileName;
+}
+
+void FileHandler::ReadFogFile(const std::string& fileName, bool& fogEnabled, Vector4& fogColour)
+{
+	std::ifstream fileReader(fileName, std::ios::in);
+	fileReader.exceptions(std::ifstream::badbit);
+
+	std::string line;
+
+	fileReader >> fogEnabled;
+	while (std::getline(fileReader, line, '\n'))
+	{
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			ss >> (float)fogColour.x;
+			ss >> (float)fogColour.y;
+			ss >> (float)fogColour.z;
+			ss >> (float)fogColour.w;
+			//std::cout << "Scale = " << scale << std::endl;
+		}
+	}
+	fileReader.close();
+}
+
+
+
+void FileHandler::SaveLightDataFile(const std::string& fileName, const DirectionalLight& dirLight, const std::vector<Light>& pointLightsData)
+{
+	std::ofstream fileWriter(fileName, std::ios::out);
+	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+
+	//Direction
+	fileWriter << dirLight.GetLightDir().x << " " << dirLight.GetLightDir().y << " " << dirLight.GetLightDir().z << std::endl;
+	//Colour
+	fileWriter << dirLight.GetColour().x << " " << dirLight.GetColour().y << " " << dirLight.GetColour().z << " " << dirLight.GetColour().w << std::endl;
+	//Intensity
+	fileWriter << dirLight.GetIntensity() << std::endl;
+
+	if (pointLightsData.size() > 0)
+	{
+		for (size_t i = 0; i < pointLightsData.size(); i++)
+			fileWriter << pointLightsData[i].GetPosition().x << " " << pointLightsData[i].GetPosition().y << " " << pointLightsData[i].GetPosition().z << std::endl;
+		fileWriter << "EndPointLightPos" << std::endl;
+
+		for (size_t i = 0; i < pointLightsData.size(); i++)
+			fileWriter << pointLightsData[i].GetColour().x << " " << pointLightsData[i].GetColour().y << " " << pointLightsData[i].GetColour().z << " " << pointLightsData[i].GetColour().w << std::endl;
+		fileWriter << "EndPointLightColour" << std::endl;
+
+		for (size_t i = 0; i < pointLightsData.size(); i++)
+			fileWriter << pointLightsData[i].GetSpecularColour().x << " " << pointLightsData[i].GetSpecularColour().y << " " << pointLightsData[i].GetSpecularColour().z << " " << pointLightsData[i].GetSpecularColour().w << std::endl;
+		fileWriter << "EndPointLightSpecularColour" << std::endl;
+
+		for (size_t i = 0; i < pointLightsData.size(); i++)
+			fileWriter << pointLightsData[i].GetRadius() << std::endl;
+		fileWriter << "EndPointLightRadius" << std::endl;
+
+		for (size_t i = 0; i < pointLightsData.size(); i++)
+			fileWriter << pointLightsData[i].GetIntensity() << std::endl;
+		fileWriter << "EndPointLightIntensity" << std::endl;
+	}
+
+	fileWriter.close();
+	std::cout << "\nFile Saved: " << fileName;
+}
+
+void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLight& dirLight, std::vector<Light>& pointLightsData)
+{
+	std::ifstream fileReader(fileName, std::ios::in);
+	fileReader.exceptions(std::ifstream::badbit);
+
+	std::string line;
+
+	Vector3 dirLightDir;
+	fileReader >> (float)dirLightDir.x;
+	fileReader >> (float)dirLightDir.y;
+	fileReader >> (float)dirLightDir.z;
+	dirLight.SetLightDir(dirLightDir);
+
+	Vector4 dirLightColour;
+	fileReader >> (float)dirLightColour.x;
+	fileReader >> (float)dirLightColour.y;
+	fileReader >> (float)dirLightColour.z;
+	fileReader >> (float)dirLightColour.w;
+	dirLight.SetColour(dirLightColour);
+
+	float dirLightIntensity;
+	fileReader >> (float)dirLightIntensity;
+	dirLight.SetIntensity(dirLightIntensity);
+
+	//==================================================================
+	std::vector<Vector3> pLightPos;
+	std::vector<Vector4> pLightColour;
+	std::vector<Vector4> pLightSpecColour;
+	std::vector<float> pLightRadius;
+	std::vector<float> pLightIntensity;
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightPos")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector3 lightPos;
+			ss >> (float)lightPos.x;
+			ss >> (float)lightPos.y;
+			ss >> (float)lightPos.z;
+			pLightPos.push_back(lightPos);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightCol;
+			ss >> (float)lightCol.x;
+			ss >> (float)lightCol.y;
+			ss >> (float)lightCol.z;
+			ss >> (float)lightCol.w;
+			pLightColour.push_back(lightCol);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightSpecularColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightColS;
+			ss >> (float)lightColS.x;
+			ss >> (float)lightColS.y;
+			ss >> (float)lightColS.z;
+			ss >> (float)lightColS.w;
+			pLightSpecColour.push_back(lightColS);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightRadius")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightR;
+			ss >> (float)lightR;
+			pLightRadius.push_back(lightR);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightIntensity")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightI;
+			ss >> (float)lightI;
+			pLightIntensity.push_back(lightI);
+		}
+	}
+
+	for (size_t i = 0; i < pLightPos.size(); i++)
+	{
+		Light pointLight;
+		pointLight.SetPosition(pLightPos[i]);
+		pointLight.SetColour(pLightColour[i]);
+		pointLight.SetSpecularColour(pLightSpecColour[i]);
+		pointLight.SetRadius(pLightRadius[i]);
+		pointLight.SetIntensity(pLightIntensity[i]);
+		pointLightsData.push_back(pointLight);
+	}
+
 	fileReader.close();
 }
