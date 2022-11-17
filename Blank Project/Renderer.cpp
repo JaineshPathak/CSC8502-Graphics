@@ -1061,7 +1061,7 @@ void Renderer::UpdateImGui()
 		ImGui::DragFloat3(_labelPrefix(std::string("Water Position").c_str()).c_str(), (float*)&waterPosition);
 	}
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
