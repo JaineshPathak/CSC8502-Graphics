@@ -44,8 +44,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	//Rocks
 	rocks2ParentNode = new SceneNode();
 	rocks2ParentNode->nodeName = "Rocks2Parent";
-	rocks5aParentNode = new SceneNode();
-	rocks5aParentNode->nodeName = "Rocks5aParent";
 	//------------------------------------------------------------------
 
 	//------------------------------------------------------------------
@@ -92,7 +90,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	
 	rootNode->AddChild(terrainNode);
 	terrainNode->AddChild(rocks2ParentNode);
-	terrainNode->AddChild(rocks5aParentNode);
+	//terrainNode->AddChild(rocks5aParentNode);
 	terrainNode->AddChild(treesParentNode);
 	terrainNode->AddChild(castleParentNode);
 	terrainNode->AddChild(castlePillarParentNode);
@@ -108,6 +106,8 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	cameraMain = new Camera();
 	cameraMain->SetDefaultSpeed(850.0f);
 	cameraMain->SetPosition(terrainHeightmapSize * Vector3(0.5f, 2.5f, 0.5f));
+
+	cameraPathManager = new CameraPathsManager(enableAutoCameraPaths, CAMERAPATHS, cameraMain);
 
 #pragma region OLD
 	/*rocksMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock2.msh");
@@ -127,7 +127,7 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	
 	//Rocks
 	rock2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
-	rock5aMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5A.msh");
+	//rock5aMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5A.msh");
 	rockMaterial = new MeshMaterial(MESHDIRCOURSE"Rocks/Mesh_Rock5D.mat", true);
 	//rockTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	
@@ -219,10 +219,12 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	if (FileHandler::FileExists(FOGDATAFILE))
 		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
 
+	//----------------------
+
 	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
 	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
 
-	projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 45.0f);
+	projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 60.0f);
 
 	glEnable(GL_DEPTH_TEST);
 	
@@ -240,6 +242,52 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 Renderer::~Renderer(void)
 {
 	delete cameraMain;
+	delete cameraPathManager;
+
+	delete rootNode;
+	delete rock2Mesh;
+	delete rockMaterial;
+
+	delete treeMesh;
+	delete treeMaterial;
+
+	delete castleMesh;
+	delete castleMaterial;
+
+	delete castlePillarMesh;
+	delete castlePillarMaterial;
+
+	delete castleBridgeMesh;
+	delete castleBridgeMaterial;
+
+	delete ruinsMesh;
+	delete ruinsMaterial;
+
+	delete crystal1Mesh;
+	delete crystal2Mesh;
+
+	delete crystal1Material;
+	delete crystal2Material;
+
+	delete monsterDudeMesh;
+	delete monsterDudeMaterial;
+	delete monsterDudeAnim;
+
+	delete monsterCrabMesh;
+	delete monsterCrabMaterial;
+	delete monsterCrabAnim;
+
+	delete dirLight;
+	delete quad;
+	delete skybox;
+
+	glDeleteTextures(1, &waterTex);
+
+	delete basicDiffuseShader;
+	delete skeletalAnimShader;
+	delete reflectShader;
+
+	delete timer;
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplWin32_Shutdown();
@@ -247,45 +295,6 @@ Renderer::~Renderer(void)
 }
 
 //------------------------------------------------------------------
-
-//Init at Center of map
-void Renderer::NewRock(Mesh* m, GLuint t, SceneNode* parent)
-{
-	RockNode* rock = new RockNode();
-	rock->SetShader(basicDiffuseShader);
-	rock->SetTexture(t);
-	rock->SetMesh(m);
-	rock->SetModelScale(Vector3(3.5f, 6.5f, 3.5f));
-	rock->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * rock->GetRotationMatrix() * Matrix4::Scale(rock->GetModelScale()));
-	parent->AddChild(rock);
-}
-
-//Read from file
-void Renderer::NewRock(Mesh* m, GLuint t, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent)
-{
-	RockNode* rock = new RockNode();
-	rock->SetShader(basicDiffuseShader);
-	rock->SetTexture(t);
-	rock->SetMesh(m);
-	rock->SetModelRotation(Rot);
-	rock->SetModelScale(Scale);
-	rock->SetTransform(Matrix4::Translation(Pos) * rock->GetRotationMatrix() * Matrix4::Scale(rock->GetModelScale()));
-	parent->AddChild(rock);
-}
-
-void Renderer::LoadRockData(const std::string& fileName, Mesh* m, GLuint t, SceneNode* parent)
-{
-	if (FileHandler::FileExists(fileName))
-	{
-		std::vector<Vector3> posV, rotV, scaleV;
-		FileHandler::ReadPropDataFromFile(fileName, posV, rotV, scaleV);
-
-		for (int i = 0; i < posV.size(); i++)
-			NewRock(m, t, posV[i], rotV[i], scaleV[i], parent);
-	}
-	else
-		NewRock(m, t, parent);
-}
 
 //------------------------------------------------------------------
 
@@ -378,11 +387,15 @@ void Renderer::CreateNewPointLight()
 
 void Renderer::UpdateScene(float dt) 
 {
-	cameraMain->UpdateCamera(dt);
+	if (cameraPathManager != nullptr && cameraPathManager->GetMode() == 0)
+		cameraMain->UpdateCamera(dt);
+
 	viewMatrix = cameraMain->BuildViewMatrix();
 
-	rootNode->Update(dt);
+	if (cameraPathManager != nullptr)
+		cameraPathManager->Update(dt, timer->GetTotalTimeSeconds());
 
+	rootNode->Update(dt);
 	//dirLight->SetLightDir(Vector3(sin(timer->GetTotalTimeSeconds()), cos(timer->GetTotalTimeSeconds()), 0));
 }
 
@@ -445,7 +458,7 @@ void Renderer::UpdateImGui()
 		}
 
 		if (ImGui::Button("New Rock2"))
-			NewRock(rock2Mesh, rockTexture, rocks2ParentNode);
+			NewTreeProp(rock2Mesh, rockMaterial, rocks2ParentNode);
 
 		ImGui::SameLine();
 		if (ImGui::Button("Save Rock2.sav"))
@@ -461,7 +474,7 @@ void Renderer::UpdateImGui()
 			FileHandler::SavePropDataToFile(ROCK2FILE, rock2PosV, rock2RotV, rock2ScaleV);
 		}
 	}
-	if (ImGui::CollapsingHeader("Rocks5A"))
+	/*if (ImGui::CollapsingHeader("Rocks5A"))
 	{
 		for (int i = 0; i < rocks5aParentNode->GetChildCount() && (rocks5aParentNode->GetChildCount() > 0); i++)
 		{
@@ -510,7 +523,7 @@ void Renderer::UpdateImGui()
 			}
 			FileHandler::SavePropDataToFile(ROCK5AFILE, rock5aPosV, rock5aRotV, rock5aScaleV);
 		}
-	}
+	}*/
 	if (ImGui::CollapsingHeader("Trees"))
 	{
 		for (int i = 0; i < treesParentNode->GetChildCount() && (treesParentNode->GetChildCount() > 0); i++)
@@ -1057,8 +1070,37 @@ void Renderer::UpdateImGui()
 			FileHandler::SaveFogFile(FOGDATAFILE, enableFog, fogColour);
 	}
 	if (ImGui::CollapsingHeader("Water"))
-	{
 		ImGui::DragFloat3(_labelPrefix(std::string("Water Position").c_str()).c_str(), (float*)&waterPosition);
+	if (ImGui::CollapsingHeader("Camera Paths Manager") && (cameraPathManager != nullptr))
+	{
+		for (size_t i = 0; i < cameraPathManager->GetPathsDataSize() && (cameraPathManager->GetPathsDataSize() > 0); i++)
+		{
+			std::string indexStr = std::to_string(i);
+			ImGui::DragFloat3(_labelPrefix(std::string("PathPos[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathPos(i));
+			ImGui::DragFloat3(_labelPrefix(std::string("PathRot[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathRot(i));
+			
+			float delay = cameraPathManager->GetPathDelay(i);
+			if (ImGui::DragFloat(_labelPrefix(std::string("Delay[" + indexStr + "]").c_str()).c_str(), &delay))
+				cameraPathManager->SetPathDelay(i, delay);
+
+			ImGui::Separator();
+		}
+
+		if (ImGui::Button("Save Data"))
+			cameraPathManager->Save();
+		ImGui::SameLine();
+		if (ImGui::Button("Add Cam Data"))
+			cameraPathManager->AddPathData(cameraMain->getPosition(), cameraMain->getRotation());
+
+		if (ImGui::Button("Play"))
+			cameraPathManager->SetMode(1);
+		ImGui::SameLine();
+		if (ImGui::Button("Stop"))
+			cameraPathManager->SetMode(0);
+
+		float s = cameraPathManager->GetSpeed();
+		if (ImGui::DragFloat(_labelPrefix(std::string("PathSpeed").c_str()).c_str(), &s))
+			cameraPathManager->SetSpeed(s);
 	}
 
 	//ImGui::ShowDemoWindow();

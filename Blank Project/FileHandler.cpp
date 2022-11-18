@@ -307,3 +307,89 @@ void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLigh
 
 	fileReader.close();
 }
+
+
+
+void FileHandler::SaveCameraPathFile(const std::string& fileName, const std::vector<Vector3>& camPosV, const std::vector<Vector3>& camRotV, const std::vector<float>& camDelayV)
+{
+	std::ofstream fileWriter(fileName, std::ios::out);
+	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
+
+	for (size_t i = 0; i < camPosV.size(); i++)
+		fileWriter << camPosV[i].x << " " << camPosV[i].y << " " << camPosV[i].z << "\n";
+
+	fileWriter << "EndPos\n";
+
+	for (size_t i = 0; i < camRotV.size(); i++)
+		fileWriter << camRotV[i].x << " " << camRotV[i].y << " " << camRotV[i].z << "\n";
+
+	fileWriter << "EndRot\n";
+
+	for (size_t i = 0; i < camDelayV.size(); i++)
+		fileWriter << camDelayV[i] << "\n";
+
+	fileWriter << "EndCamDelay\n";
+
+	fileWriter.close();
+	std::cout << "\nFile Saved: " << fileName;
+}
+
+void FileHandler::ReadCameraPathFile(const std::string& fileName, std::vector<Vector3>& camPosV, std::vector<Vector3>& camRotV, std::vector<float>& camDelayV)
+{
+	std::ifstream fileReader(fileName, std::ios::in);
+	fileReader.exceptions(std::ifstream::badbit);
+
+	std::string line;
+
+	//Position
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPos")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector3 pos;
+			ss >> (float)pos.x;
+			ss >> (float)pos.y;
+			ss >> (float)pos.z;
+			camPosV.push_back(pos);
+		}
+	}
+
+	//Rotation
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndRot")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector3 rot;
+			ss >> (float)rot.x;
+			ss >> (float)rot.y;
+			ss >> (float)rot.z;
+			camRotV.push_back(rot);
+			//std::cout << "Rotation = " << rot << std::endl;
+		}
+	}
+
+	//Delay
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndCamDelay")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float delay;
+			ss >> (float)delay;
+			camDelayV.push_back(delay);
+			//std::cout << "Rotation = " << rot << std::endl;
+		}
+	}
+	fileReader.close();
+}

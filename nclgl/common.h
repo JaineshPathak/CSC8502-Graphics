@@ -82,5 +82,5 @@ static inline float Clamp(const float& val, const float& min, const float& max)
 
 #define MONSTERDUDEFILE "../LevelData/MonsterDude.sav"
 #define MONSTERCRABFILE "../LevelData/MonsterCrab.sav"
-#define MONSTERDRAGONREDFILE "../LevelData/MonsterDragonRed.sav"
-#define MONSTERDRAGONGREENFILE "../LevelData/MonsterDragonGreen.sav"
+
+#define CAMERAPATHS "../LevelData/CameraPaths.sav"

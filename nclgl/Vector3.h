@@ -87,6 +87,13 @@ public:
 		return finalV;
 	}
 
+	static float Distance(const Vector3& p1, const Vector3& p2)
+	{
+		float diffY = p1.y - p2.y;
+		float diffX = p1.x - p2.x;
+		return sqrt((diffY * diffY) + (diffX * diffX));
+	}
+
 	inline friend std::ostream& operator<<(std::ostream& o, const Vector3& v) {
 		o << "Vector3(" << v.x << "," << v.y << "," << v.z <<")" << std::endl;
 		return o;

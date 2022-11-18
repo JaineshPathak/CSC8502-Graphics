@@ -24,4 +24,7 @@ public:
 
 	static void SaveLightDataFile(const std::string& fileName, const DirectionalLight& dirLight, const std::vector<Light>& pointLightsData);
 	static void ReadLightDataFile(const std::string& fileName, DirectionalLight& dirLight, std::vector<Light>& pointLightsData);
+
+	static void SaveCameraPathFile(const std::string& fileName, const std::vector<Vector3>& camPosV, const std::vector<Vector3>& camRotV, const std::vector<float>& camDelayV);
+	static void ReadCameraPathFile(const std::string& fileName, std::vector<Vector3>& camPosV, std::vector<Vector3>& camRotV, std::vector<float>& camDelayV);
 };

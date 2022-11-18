@@ -41,7 +41,7 @@
     <ClCompile Include="AnimMeshNode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Water.cpp">
+    <ClCompile Include="CameraPathsManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -73,7 +73,7 @@
     <ClInclude Include="AnimMeshNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Water.h">
+    <ClInclude Include="CameraPathsManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

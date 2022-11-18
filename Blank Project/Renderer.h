@@ -1,11 +1,12 @@
 #pragma once
 #include "../NCLGL/OGLRenderer.h"
 #include "TerrainNode.h"
-#include "RockNode.h"
+//#include "RockNode.h"
 #include "TreePropNode.h"
 #include "AnimMeshNode.h"
 #include "FileHandler.h"
 #include "Skybox.h"
+#include "CameraPathsManager.h"
 
 #include "../Third Party/imgui/imgui.h"
 #include "../Third Party/imgui/imgui_impl_opengl3.h"
@@ -28,7 +29,10 @@ public:
 
 protected:
 	bool blendFix = true;
+
 	Camera* cameraMain;
+	bool enableAutoCameraPaths = true;
+	CameraPathsManager* cameraPathManager;
 
 	SceneNode* rootNode;
 	TerrainNode* terrainNode;
@@ -39,16 +43,9 @@ protected:
 	//Rocks
 	Shader* basicDiffuseShader;
 	SceneNode* rocks2ParentNode;
-	SceneNode* rocks5aParentNode;
-	GLuint rockTexture;
+	Mesh* rock2Mesh;
 	MeshMaterial* rockMaterial;
 	
-	Mesh* rock2Mesh;
-	Mesh* rock5aMesh;
-
-	void NewRock(Mesh* m, GLuint t, SceneNode* parent);
-	void NewRock(Mesh* m, GLuint t, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent);
-	void LoadRockData(const std::string& fileName, Mesh* m, GLuint t, SceneNode* parent);
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -143,7 +140,6 @@ protected:
 	int numPointLights = 1;
 	std::vector<Light> allPointLights;
 	void CreateNewPointLight();
-	//Light* allPointLights;
 
 	//--------------------------------------------------------------------
 	
