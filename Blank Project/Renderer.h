@@ -153,7 +153,10 @@ protected:
 	//Water
 	Shader* reflectShader;
 	GLuint waterTex;
+	GLuint waterBump;
 	Vector3 waterPosition = Vector3(0, 0, 0);
+	float waterRotate;
+	float waterCycle;
 	void DrawWater();
 
 	//Timer
@@ -162,6 +165,12 @@ protected:
 	//Fog
 	bool enableFog = true;
 	Vector4 fogColour = Vector4();
+
+	//Shadows
+	GLuint shadowTex;
+	GLuint shadowFBO;
+	Shader* shadowShader;
+	void DrawShadowScene();
 
 	//void DrawMainTerrain();
 	void DrawNodes();

@@ -63,7 +63,7 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 	}
 
 	int j = glGetUniformLocation(shader->GetProgram(), "joints");
-	glUniformMatrix4fv(j, frameMatrices.size(), false, (float*)frameMatrices.data());
+	glUniformMatrix4fv(j, (GLsizei)frameMatrices.size(), false, (float*)frameMatrices.data());
 
 	for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
 	{

@@ -60,7 +60,7 @@ public:
 		return (a->distanceFromCamera < b->distanceFromCamera) ? true : false;
 	}
 
-	int GetChildCount() { return children.size(); }
+	int GetChildCount() { return (int)children.size(); }
 
 protected:	
 	SceneNode* parent;

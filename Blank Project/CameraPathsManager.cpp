@@ -83,6 +83,7 @@ void CameraPathsManager::Update(float dt, float totalTime)
 		}
 	}
 
+	//Loop
 	if (currentPathIndex >= pathsData.size())
 		currentPathIndex = 0;
 }

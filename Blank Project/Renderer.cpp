@@ -4,6 +4,8 @@
 #include "../nclgl/DirectionalLight.h"
 #include <algorithm>
 
+#define SHADOW_SIZE 1024
+
 static std::string _labelPrefix(const char* const label)
 {
 	float width = ImGui::CalcItemWidth();
@@ -196,8 +198,8 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
 	{
 		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
-		if (allPointLights.size() > 0)
-			numPointLights = allPointLights.size();
+		if ((int)allPointLights.size() > 0)
+			numPointLights = (int)allPointLights.size();
 	}
 	else
 	{
@@ -211,22 +213,50 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	//Water
 	reflectShader = new Shader(SHADERDIRCOURSETERRAIN"CWReflectVertex.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragment.glsl");
 	waterTex = SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	waterBump = SOIL_load_OGL_texture(TEXTUREDIR"waterbump.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	SetTextureRepeating(waterTex, true);
+	SetTextureRepeating(waterBump, true);
 	waterPosition.x = terrainHeightmapSize.x * 0.5f;
 	waterPosition.y = terrainHeightmapSize.y * 0.2355f;
 	waterPosition.z = terrainHeightmapSize.z * 0.5f;
+	waterRotate = 0.0f;
+	waterCycle = 0.0f;
 	
 	//Fog
 	if (FileHandler::FileExists(FOGDATAFILE))
 		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
+
+	//Shadows
+	glEnable(GL_DEPTH_TEST);
+
+	shadowShader = new Shader("shadowVert.glsl", "shadowFrag.glsl");
+	glGenTextures(1, &shadowTex);
+	glBindTexture(GL_TEXTURE_2D, shadowTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_SIZE, SHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	//----------------------
+
+	glGenFramebuffers(1, &shadowFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex, 0);
+	glDrawBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//----------------------
 
 	//----------------------
 
 	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
 	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
 
-	projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 60.0f);
-
-	glEnable(GL_DEPTH_TEST);
+	//projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 60.0f);
 	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -286,6 +316,10 @@ Renderer::~Renderer(void)
 	delete basicDiffuseShader;
 	delete skeletalAnimShader;
 	delete reflectShader;
+	delete shadowShader;
+
+	glDeleteTextures(1, &shadowTex);
+	glDeleteFramebuffers(1, &shadowFBO);
 
 	delete timer;
 
@@ -380,20 +414,23 @@ void Renderer::CreateNewPointLight()
 	l->SetRadius(terrainHeightmapSize.x * 0.2f);
 
 	allPointLights.push_back(*l);
-	numPointLights = allPointLights.size();
+	numPointLights = (int)allPointLights.size();
 }
 
 //------------------------------------------------------------------
 
 void Renderer::UpdateScene(float dt) 
 {
+	waterRotate += dt * 2.0f;
+	waterCycle += dt * 0.25f;
+
 	if (cameraPathManager != nullptr && cameraPathManager->GetMode() == 0)
 		cameraMain->UpdateCamera(dt);
 
-	viewMatrix = cameraMain->BuildViewMatrix();
+	//viewMatrix = cameraMain->BuildViewMatrix();
 
 	if (cameraPathManager != nullptr)
-		cameraPathManager->Update(dt, timer->GetTotalTimeSeconds());
+		cameraPathManager->Update(dt, (float)timer->GetTotalTimeSeconds());
 
 	rootNode->Update(dt);
 	//dirLight->SetLightDir(Vector3(sin(timer->GetTotalTimeSeconds()), cos(timer->GetTotalTimeSeconds()), 0));
@@ -1076,12 +1113,12 @@ void Renderer::UpdateImGui()
 		for (size_t i = 0; i < cameraPathManager->GetPathsDataSize() && (cameraPathManager->GetPathsDataSize() > 0); i++)
 		{
 			std::string indexStr = std::to_string(i);
-			ImGui::DragFloat3(_labelPrefix(std::string("PathPos[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathPos(i));
-			ImGui::DragFloat3(_labelPrefix(std::string("PathRot[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathRot(i));
+			ImGui::DragFloat3(_labelPrefix(std::string("PathPos[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathPos((int)i));
+			ImGui::DragFloat3(_labelPrefix(std::string("PathRot[" + indexStr + "]").c_str()).c_str(), (float*)&cameraPathManager->GetPathRot((int)i));
 			
-			float delay = cameraPathManager->GetPathDelay(i);
+			float delay = cameraPathManager->GetPathDelay((int)i);
 			if (ImGui::DragFloat(_labelPrefix(std::string("Delay[" + indexStr + "]").c_str()).c_str(), &delay))
-				cameraPathManager->SetPathDelay(i, delay);
+				cameraPathManager->SetPathDelay((int)i, delay);
 
 			ImGui::Separator();
 		}
@@ -1121,6 +1158,7 @@ void Renderer::RenderScene()
 
 	//DrawMainTerrain();	
 	//UpdateShaderMatrices();
+	DrawShadowScene();
 	DrawSkybox();
 	if (blendFix)
 	{
@@ -1146,6 +1184,33 @@ void Renderer::DrawSkybox()
 	quad->Draw();
 
 	glDepthMask(GL_TRUE);
+}
+
+void Renderer::DrawShadowScene()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	glViewport(0, 0, SHADOW_SIZE, SHADOW_SIZE);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	BindShader(shadowShader);
+	
+	//viewMatrix = Matrix4::BuildViewMatrix(light->GetDirection(), Vector3(heightMap->GetHeightmapSize().x / 2, 0, heightMap->GetHeightmapSize().z / 2));
+	float _nearPlane = 1.0f, _farPlane = 100.0f;
+	//projMatrix = Matrix4::Orthographic(-100.0f, 100.0f, -100.0f, 100.0f, _nearPlane, _farPlane);
+	projMatrix = Matrix4::Perspective(1, 100.0f, 1, 45.0f);
+	viewMatrix = Matrix4::BuildViewMatrix(allPointLights[numPointLights - 1].GetPosition(), Vector3(0, 0, 0));
+	shadowMatrix = projMatrix * viewMatrix;
+
+	UpdateShaderMatrices();
+
+	DrawNode(rootNode, true);
+
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glViewport(0, 0, width, height);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 #pragma region OLD
@@ -1198,15 +1263,21 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 		BindShader(n->GetShader());
 		modelMatrix = n->GetWorldTransform() * Matrix4::Scale(n->GetModelScale());
 
+		viewMatrix = cameraMain->BuildViewMatrix();
+		projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width / (float)height, 60.0f);
+
 		UpdateShaderMatrices();
 
 		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "cameraPos"), 1, (float*)&cameraMain->getPosition());
+
 		glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDir"), 1, (float*)&dirLight->GetLightDir());
 		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirColour"), 1, (float*)&dirLight->GetColour());
 		glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirIntensity"), dirLight->GetIntensity());
+
 		glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "enableFog"), enableFog);
 		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "fogColour"), 1, (float*)&fogColour);
-		SetShaderLight(*dirLight);		//Sun
+
+		SetShaderLight(allPointLights[numPointLights - 1]);		//Sun
 
 		glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "numPointLights"), numPointLights);
 		for (size_t i = 0; i < allPointLights.size() && (numPointLights > 0); i++)
@@ -1225,6 +1296,10 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightRadiusName.c_str()), l.GetRadius());
 			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightIntensityName.c_str()), l.GetIntensity());
 		}
+
+		glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "shadowTex"), 4);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, shadowTex);
 
 		n->Draw(*this);
 		
@@ -1282,12 +1357,16 @@ void Renderer::DrawWater()
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, waterTex);
 
+	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "bumpTex"), 1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, waterBump);
+
 	glUniform1i(glGetUniformLocation(reflectShader->GetProgram(), "cubeTex"), 2);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox->GetSkyboxCube());
 
 	modelMatrix = Matrix4::Translation(waterPosition) * Matrix4::Scale(terrainHeightmapSize * 0.5f) * Matrix4::Rotation(-90.0f, Vector3(1, 0, 0));
-	//textureMatrix = Matrix4::Translation(Vector3(waterCycle, 0.0f, waterCycle)) * Matrix4::Scale(Vector3(10, 10, 10)) * Matrix4::Rotation(waterRotate, Vector3(0, 0, 1));
+	textureMatrix = Matrix4::Translation(Vector3(waterCycle, 0.0f, waterCycle)) * Matrix4::Scale(Vector3(10, 10, 10)) * Matrix4::Rotation(waterRotate, Vector3(0, 0, 1));
 
 	UpdateShaderMatrices();
 

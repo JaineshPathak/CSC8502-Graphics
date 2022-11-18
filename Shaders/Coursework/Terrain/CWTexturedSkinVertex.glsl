@@ -3,7 +3,10 @@
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
+uniform mat4 shadowMatrix;
 uniform int enableFog;
+
+uniform vec3 lightPos;
 
 in vec3 position;
 in vec2 texCoord;
@@ -22,6 +25,7 @@ out Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+	vec4 shadowProj;
 
 	float visibility;
 	vec4 weightColor;
@@ -70,4 +74,8 @@ void main(void)
 		OUT.visibility = exp(-pow((distance * density), gradient));
 		OUT.visibility = clamp(OUT.visibility, 0.0, 1.0);
 	}
+
+	vec3 viewDir = normalize(lightPos - worldPos.xyz);
+	vec4 pushVal = vec4(OUT.normal, 0) * dot(viewDir, OUT.normal);
+	OUT.shadowProj = shadowMatrix * (worldPos + pushVal);
 }

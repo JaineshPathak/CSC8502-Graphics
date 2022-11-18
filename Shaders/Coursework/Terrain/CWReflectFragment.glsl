@@ -1,6 +1,7 @@
 #version 330 core
 
 uniform sampler2D diffuseTex;
+uniform sampler2D bumpTex;
 uniform samplerCube cubeTex;
 
 uniform vec3 cameraPos;
@@ -33,6 +34,8 @@ in Vertex
 	vec4 colour;
 	vec2 texCoord;
 	vec3 normal;
+	vec3 tangent;
+	vec3 binormal;
 	vec3 worldPos;
 
 	float visibility;
@@ -54,12 +57,23 @@ void main(void)
 	vec4 reflectTex = texture(cubeTex, reflectDir);
 
 
+	vec3 bumpNormal = texture(bumpTex, IN.texCoord ).xyz;
+	bumpNormal = bumpNormal * 2.0 - 1.0;
+	bumpNormal.xy *= 5.0;
+	bumpNormal = normalize(bumpNormal);
+
+	mat3 TBN = mat3(normalize(IN.tangent), normalize(IN.binormal), normalize(IN.normal));
+	bumpNormal = normalize(TBN * bumpNormal);
+
+
+
+
 	vec3 result = vec3(0.0);
-	result += CalcDirLight(viewDir, IN.normal);
+	result += CalcDirLight(viewDir, bumpNormal);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightSpecularColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, IN.normal);
+			result += CalcPointLight(pointLightColour[i], pointLightSpecularColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, bumpNormal);
 	}
 
 
@@ -69,7 +83,7 @@ void main(void)
 	{
 		fragColour = mix(fogColour, fragColour, IN.visibility);
 	}
-	fragColour.a = 0.8f;
+	fragColour.a = 0.9f;
 }
 
 vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
@@ -87,7 +101,7 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	vec3 diffuseRGB = lightDirColour.rgb * texture(diffuseTex, IN.texCoord).rgb * lambert;
 	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
 
-	return (ambient + diffuseRGB) * lightDirIntensity;
+	return (ambient + diffuseRGB + specular) * lightDirIntensity;
 }
 
 vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal)
@@ -110,5 +124,5 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3
 	diffuseRGB *= attenuation * _pointLightIntensity;
 	specular *= attenuation * _pointLightIntensity;
 
-	return (ambient + diffuseRGB);
+	return (ambient + diffuseRGB + specular);
 }

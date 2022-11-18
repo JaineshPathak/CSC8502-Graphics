@@ -2,6 +2,7 @@
 
 uniform sampler2D diffuseTex;
 uniform sampler2D bumpTex;
+uniform sampler2D shadowTex;
 
 uniform vec3 cameraPos;
 
@@ -37,6 +38,7 @@ in Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+	vec4 shadowProj;
 
 	float visibility;
 } IN;
@@ -92,7 +94,28 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	vec3 diffuseRGB = lightDirColour.rgb * texture(diffuseTex, IN.texCoord).rgb * lambert;
 	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
 
-	return (ambient + diffuseRGB) * lightDirIntensity;
+	//--------------------
+	//Shadow
+
+	float shadow = 1.0;
+	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
+	if( abs(shadowNDC.x) < 1.0f && 
+		abs(shadowNDC.y) < 1.0f &&
+		abs(shadowNDC.z) < 1.0f)
+	{
+		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
+		float shadowZ = texture(shadowTex, biasCoord.xy).x;
+		if(shadowZ < biasCoord.z)
+			shadow = 0.0f;
+	}
+
+	//--------------------
+
+	ambient *= shadow;
+	diffuseRGB *= shadow;
+	specular *= shadow;
+
+	return (ambient + diffuseRGB + specular);
 }
 
 vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal)
@@ -111,9 +134,31 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3
 	vec3 diffuseRGB = _pointLightColour.rgb * texture(diffuseTex, IN.texCoord).rgb * lambert;
 	vec3 specular = _pointLightColour.rgb * (_pointLightSpecularColour.rgb * specFactor);
 
-	ambient *= attenuation * _pointLightIntensity;
-	diffuseRGB *= attenuation * _pointLightIntensity;
-	specular *= attenuation * _pointLightIntensity;
+	//--------------------
+	//Shadow
 
-	return (ambient + diffuseRGB);
+	float shadow = 1.0;
+	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
+	if( abs(shadowNDC.x) < 1.0f && 
+		abs(shadowNDC.y) < 1.0f &&
+		abs(shadowNDC.z) < 1.0f)
+	{
+		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
+		float shadowZ = texture(shadowTex, biasCoord.xy).x;
+		if(shadowZ < biasCoord.z)
+			shadow = 0.0f;
+	}
+
+	//--------------------
+
+	ambient *= attenuation * _pointLightIntensity;
+	ambient *= shadow;
+
+	diffuseRGB *= attenuation * _pointLightIntensity;
+	diffuseRGB *= shadow;
+
+	specular *= attenuation * _pointLightIntensity;
+	specular *= shadow;
+
+	return (ambient + diffuseRGB + specular);
 }

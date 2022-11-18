@@ -18,7 +18,7 @@ public:
 	int GetMode() const { return mode; }
 	void SetMode(int m) { mode = m; }
 
-	int GetPathsDataSize() const { return pathsData.size(); }
+	int GetPathsDataSize() const { return (int)pathsData.size(); }
 
 	Vector3 GetPathPos(int i) const { return pathsData[i].pathPosition; }
 	Vector3 GetPathRot(int i) const { return pathsData[i].pathRotation; }
