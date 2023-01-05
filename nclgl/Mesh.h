@@ -96,6 +96,11 @@ public:
 	void GenerateTangents();
 	Vector4 GenerateTangent(int a, int b, int c);
 
+	void GenerateBoundingBox();
+	Vector3 GetBoundingBoxSize() const { return boundingBoxSize; }
+	Vector3 GetBoundingBoxCenter() const { return boundingBoxCenter; }
+	Vector3 GetBoundingBoxExtents() const { return boundingBoxExtents; }
+
 protected:
 	void	BufferData();
 
@@ -121,6 +126,10 @@ protected:
 
 	Matrix4* bindPose;
 	Matrix4* inverseBindPose;
+
+	Vector3 boundingBoxSize;
+	Vector3 boundingBoxExtents;
+	Vector3 boundingBoxCenter;
 
 	std::vector<std::string>	jointNames;
 	std::vector<int>			jointParents;

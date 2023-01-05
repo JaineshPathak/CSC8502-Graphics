@@ -51,6 +51,10 @@ public:
 	
 	float GetCameraDistance() const { return distanceFromCamera; }
 	void SetCameraDistance(float f) { distanceFromCamera = f; }
+
+	void CalcBoundingBox();
+	Vector3 GetBoundingBoxCenter() const { return nodeBoundingBoxCenter; }
+	Vector3 GetBoundingBoxExtents() const { return nodeBoundingBoxExtents; }
 	
 	void SetTexture(GLuint tex) { texture = tex; }
 	GLuint GetTexture() const { return texture; }
@@ -72,6 +76,9 @@ protected:
 	Vector4 colour;
 	Shader* shader;
 	std::vector<SceneNode*> children;
+
+	Vector3 nodeBoundingBoxCenter;
+	Vector3 nodeBoundingBoxExtents;
 
 	float distanceFromCamera;
 	float boundingRadius;

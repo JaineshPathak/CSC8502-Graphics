@@ -4,7 +4,7 @@
 #include "../nclgl/DirectionalLight.h"
 #include <algorithm>
 
-#define SHADOW_SIZE 1024
+#define SHADOW_SIZE 512
 
 static std::string _labelPrefix(const char* const label)
 {
@@ -36,6 +36,8 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ImGui_ImplWin32_Init(parent.GetHandle());
 	ImGui_ImplOpenGL3_Init("#version 330");
 	//-----------------------------------------------------------
+
+	boundingRadiusMultiplier = 8.5f;
 
 	rootNode = new SceneNode();
 	rootNode->nodeName = "Root";
@@ -339,6 +341,8 @@ void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool 
 		tree->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
 	tree->SetModelScale(Vector3(6.0f, 6.0f, 6.0f));
 	tree->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * tree->GetRotationMatrix() * Matrix4::Scale(tree->GetModelScale()));
+	tree->SetBoundingRadius(tree->GetModelScale().GetAbsMaxElement() * boundingRadiusMultiplier);
+	tree->CalcBoundingBox();
 	parent->AddChild(tree);
 }
 
@@ -350,6 +354,8 @@ void Renderer::NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, cons
 	tree->SetModelRotation(Rot);
 	tree->SetModelScale(Scale);
 	tree->SetTransform(Matrix4::Translation(Pos) * tree->GetRotationMatrix() * Matrix4::Scale(tree->GetModelScale()));
+	tree->SetBoundingRadius(tree->GetModelScale().GetAbsMaxElement() * boundingRadiusMultiplier);
+	tree->CalcBoundingBox();
 	parent->AddChild(tree);
 }
 
@@ -376,6 +382,8 @@ void Renderer::NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim
 		anim->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
 	anim->SetModelScale(Vector3(6.0f, 6.0f, 6.0f));
 	anim->SetTransform(Matrix4::Translation(terrainHeightmapSize * Vector3(0.5f, 1.5f, 0.5f)) * anim->GetRotationMatrix() * Matrix4::Scale(anim->GetModelScale()));
+	anim->SetBoundingRadius(anim->GetModelScale().GetAbsMaxElement() * boundingRadiusMultiplier);
+	anim->CalcBoundingBox();
 	parent->AddChild(anim);
 }
 
@@ -387,6 +395,8 @@ void Renderer::NewAnimNodeProp(Mesh* m, MeshMaterial* mMat, MeshAnimation* mAnim
 	anim->SetModelRotation(Rot);
 	anim->SetModelScale(Scale);
 	anim->SetTransform(Matrix4::Translation(Pos) * anim->GetRotationMatrix() * Matrix4::Scale(anim->GetModelScale()));
+	anim->SetBoundingRadius(anim->GetModelScale().GetAbsMaxElement() * boundingRadiusMultiplier);
+	anim->CalcBoundingBox();
 	parent->AddChild(anim);
 }
 
@@ -431,6 +441,8 @@ void Renderer::UpdateScene(float dt)
 
 	if (cameraPathManager != nullptr)
 		cameraPathManager->Update(dt, (float)timer->GetTotalTimeSeconds());
+
+	frameFrustum.FromMatrix(projMatrix * viewMatrix);
 
 	rootNode->Update(dt);
 	//dirLight->SetLightDir(Vector3(sin(timer->GetTotalTimeSeconds()), cos(timer->GetTotalTimeSeconds()), 0));
@@ -1229,13 +1241,19 @@ void Renderer::DrawShadowScene()
 
 void Renderer::BuildNodeLists(SceneNode* from)
 {
-	Vector3 dir = from->GetWorldTransform().GetPositionVector() - cameraMain->getPosition();
-	from->SetCameraDistance(Vector3::Dot(dir, dir));
+	if (frameFrustum.InsideFrustumBox(*from))
+	{
+		Vector3 dir = from->GetWorldTransform().GetPositionVector() - cameraMain->getPosition();
+		from->SetCameraDistance(Vector3::Dot(dir, dir));
 
-	if (from->GetColour().w < 1.0f)
-		transparentNodesList.push_back(from);
-	else
-		opaqueNodesList.push_back(from);
+		if (from->GetColour().w < 1.0f)
+			transparentNodesList.push_back(from);
+		else
+			opaqueNodesList.push_back(from);
+
+		display++;
+	}
+	total++;
 
 	for (vector<SceneNode*>::const_iterator i = from->GetChildIteratorStart(); i != from->GetChildIteratorEnd(); ++i)
 		BuildNodeLists((*i));
@@ -1249,6 +1267,9 @@ void Renderer::SortNodeLists()
 
 void Renderer::DrawNodes()
 {
+	//std::cout << "Total process in CPU : " << total;
+	//std::cout << " / Total send to GPU : " << display << std::endl;
+
 	for (const auto& i : opaqueNodesList)
 		DrawNode(i, false);
 	DrawWater();
@@ -1318,6 +1339,9 @@ void Renderer::ClearNodeLists()
 	transparentNodesList.clear();
 	opaqueNodesList.clear();
 	opaqueNodesList.push_back(terrainNode);
+
+	total = 0;
+	display = 0;
 }
 
 void Renderer::DrawWater()

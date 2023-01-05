@@ -141,5 +141,28 @@ public:
 
 	inline bool	operator==(const Vector3 &A)const {return (A.x == x && A.y == y && A.z == z) ? true : false;};
 	inline bool	operator!=(const Vector3 &A)const {return (A.x == x && A.y == y && A.z == z) ? false : true;};
+
+	inline float GetMaxElement() const 
+	{
+		float v = x;
+		if (y > v)
+			v = y;
+		if (z > v)
+			v = z;
+
+		return v;
+	}
+
+	inline float GetAbsMaxElement() const 
+	{
+		float v = abs(x);
+		if (abs(y) > v) {
+			v = abs(y);
+		}
+		if (abs(z) > v) {
+			v = abs(z);
+		}
+		return v;
+	}
 };
 

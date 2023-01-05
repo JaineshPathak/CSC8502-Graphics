@@ -23,3 +23,15 @@ bool Plane::SphereInPlane(const Vector3& position, float radius) const
 
 	return true;
 }
+
+bool Plane::BoxInPlane(const Vector3& position, const Vector3& extents) const
+{
+	const float r = extents.x * std::abs(normal.x) + 
+					extents.y * std::abs(normal.y) + 
+					extents.z * std::abs(normal.z);
+
+	if (Vector3::Dot(position, normal) + distance <= -r)
+		return false;
+
+	return true;
+}

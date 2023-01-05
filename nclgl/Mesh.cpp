@@ -86,7 +86,9 @@ Mesh* Mesh::GenerateTriangle()
 	m->textureCoords[1] = Vector2(0.5f, 1.0f);
 	m->textureCoords[2] = Vector2(1.0f, 0.0f);
 	
+	m->GenerateBoundingBox();
 	m->BufferData();
+
 	return m;
 }
 
@@ -121,14 +123,16 @@ Mesh* Mesh::GenerateQuad()
 	m->textureCoords[2] = Vector2(1.0f, 1.0f);
 	m->textureCoords[3] = Vector2(1.0f, 0.0f);
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 4; ++i)
 	{
 		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
 		m->tangents[i] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
 	}
 
+	m->GenerateBoundingBox();
 	m->BufferData();
+
 	return m;
 }
 
@@ -152,7 +156,9 @@ Mesh* Mesh::GenerateCircle(float cx, float cy, float r, Vector4 color, GLuint ty
 		//GenerateCircle(x, y, 0.1f);
 	}
 
+	m->GenerateBoundingBox();
 	m->BufferData();
+
 	return m;
 }
 
@@ -250,6 +256,7 @@ Mesh* Mesh::GenerateCube()
 	m->textureCoords[34] = Vector2(0.0f, 0.0f);
 	m->textureCoords[35] = Vector2(0.0f, 1.0f);
 
+	m->GenerateBoundingBox();
 	m->BufferData();
 	return m;
 }
@@ -569,6 +576,7 @@ Mesh* Mesh::LoadFromMeshFile(const string& name) {
 		memcpy(mesh->weightIndices, readWeightIndices.data(), numVertices * sizeof(int) * 4);
 	}
 
+	mesh->GenerateBoundingBox();
 	mesh->BufferData();
 
 	return mesh;
@@ -720,4 +728,34 @@ Vector4 Mesh::GenerateTangent(int a, int b, int c)
 		handedness = -1.0f;
 
 	return Vector4(tangent.x, tangent.y, tangent.z, handedness);
+}
+
+void Mesh::GenerateBoundingBox()
+{
+	if (numVertices <= 0) 
+		return;
+
+	float minX, maxX;
+	float minY, maxY;
+	float minZ, maxZ;
+
+	minX = maxX = vertices[0].x;
+	minY = maxY = vertices[0].y;
+	minZ = maxZ = vertices[0].z;
+
+	for (int i = 0; i < numVertices; i++)
+	{
+		if (vertices[i].x < minX) minX = vertices[i].x;
+		if (vertices[i].x > maxX) maxX = vertices[i].x;
+
+		if (vertices[i].y < minY) minY = vertices[i].y;
+		if (vertices[i].y > maxY) maxY = vertices[i].y;
+
+		if (vertices[i].z < minZ) minZ = vertices[i].z;
+		if (vertices[i].z > maxZ) maxZ = vertices[i].z;
+	}
+
+	boundingBoxSize = Vector3(maxX - minX, maxY - minY, maxZ - minZ);
+	boundingBoxCenter = Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, (minZ + maxZ) * 0.5f);
+	boundingBoxExtents = Vector3(maxX - boundingBoxCenter.x, maxY - boundingBoxCenter.y, maxZ - boundingBoxCenter.z);
 }

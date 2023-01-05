@@ -13,9 +13,9 @@ void FileHandler::SavePropDataToFile(const std::string& fileName, const std::vec
 	std::ofstream fileWriter(fileName, std::ios::out);
 	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
 	
-	int PropPosSize = PropPos.size();
-	int PropRotSize = PropRot.size();
-	int PropScaleSize = PropScale.size();
+	int PropPosSize = (int)PropPos.size();
+	int PropRotSize = (int)PropRot.size();
+	int PropScaleSize = (int)PropScale.size();
 
 	fileWriter << PropPosSize << std::endl;
 	for (int i = 0; i < PropPosSize; i++)

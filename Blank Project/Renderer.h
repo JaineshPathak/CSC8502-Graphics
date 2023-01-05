@@ -1,5 +1,6 @@
 #pragma once
-#include "../NCLGL/OGLRenderer.h"
+#include "../nclgl/OGLRenderer.h"
+#include "../nclgl/Frustum.h"
 #include "TerrainNode.h"
 //#include "RockNode.h"
 #include "TreePropNode.h"
@@ -31,9 +32,11 @@ protected:
 	bool blendFix = true;
 
 	Camera* cameraMain;
-	bool enableAutoCameraPaths = true;
+	bool enableAutoCameraPaths = false;
 	CameraPathsManager* cameraPathManager;
+	unsigned int total = 0, display = 0;
 
+	float boundingRadiusMultiplier;
 	SceneNode* rootNode;
 	TerrainNode* terrainNode;
 	//TerrainHeightmap* terrainMain;
@@ -165,6 +168,9 @@ protected:
 	//Fog
 	bool enableFog = true;
 	Vector4 fogColour = Vector4();
+
+	//Frame Frustum
+	Frustum frameFrustum;
 
 	//Shadows
 	GLuint shadowTex;

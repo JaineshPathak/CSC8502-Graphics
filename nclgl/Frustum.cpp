@@ -15,6 +15,22 @@ bool Frustum::InsideFrustum(SceneNode& n)
 	return true;
 }
 
+bool Frustum::InsideFrustumBox(SceneNode& n)
+{
+	if (!n.GetMesh())
+		return false;
+
+	for (int p = 0; p < 6; ++p)
+	{
+		if (!planes[p].BoxInPlane(n.GetBoundingBoxCenter(), n.GetBoundingBoxExtents()))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void Frustum::FromMatrix(const Matrix4& mvp)
 {
 	Vector3 xAxis = Vector3(mvp.values[0], mvp.values[4], mvp.values[8]);

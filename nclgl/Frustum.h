@@ -12,6 +12,7 @@ public:
 
 	void FromMatrix(const Matrix4& mvp);
 	bool InsideFrustum(SceneNode& n);
+	bool InsideFrustumBox(SceneNode& n);
 
 protected:
 	Plane planes[6];
