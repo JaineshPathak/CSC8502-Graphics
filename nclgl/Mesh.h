@@ -50,7 +50,9 @@ public:
 	~Mesh(void);
 
 	void Draw();
+	void Draw(int instanceAmount);
 	void DrawSubMesh(int i);
+	void DrawSubMesh(int i, int instanceAmount);
 
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
@@ -100,6 +102,12 @@ public:
 	Vector3 GetBoundingBoxSize() const { return boundingBoxSize; }
 	Vector3 GetBoundingBoxCenter() const { return boundingBoxCenter; }
 	Vector3 GetBoundingBoxExtents() const { return boundingBoxExtents; }
+
+	GLuint GetArrayObject() { return arrayObject; }
+	GLuint GetVBO() { return bufferObject[VERTEX_BUFFER]; }
+	GLuint GetType() { return type; }
+	GLuint GetVerticesCount() { return numVertices; }
+	GLuint GetIndicesCount() { return numIndices; }
 
 protected:
 	void	BufferData();

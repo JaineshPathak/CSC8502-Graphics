@@ -40,6 +40,8 @@ in Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+	vec3 fragPos;
+	vec4 fragPosLightSpace;
 	vec4 shadowProj;
 
 	float visibility;
@@ -93,6 +95,12 @@ void main(void)
 	{
 		fragColour = mix(vec4(fogColour.xyz, 1.0f), fragColour, IN.visibility);
 	}
+
+//	float brightness = dot(fragColour.rgb, vec3(0.2126, 0.7152, 0.0722));
+//    if(brightness > 0.75)
+//        fragColour = vec4(fragColour.rgb, 1.0);
+//    else
+//        fragColour = vec4(0.0, 0.0, 0.0, 1.0);
 	//fragColour = vec4(1.0);
 }
 
@@ -107,7 +115,7 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal)
 	float specFactor = clamp(dot(halfDir, IN.normal), 0.0, 1.0);
 	specFactor = pow(specFactor, 800.0f);
 
-	vec3 ambient = 0.3f * diffuseFinal.rgb;
+	vec3 ambient = 0.1f * diffuseFinal.rgb;
 	vec3 diffuseRGB = lightDirColour.rgb * diffuseFinal.rgb * lambert;
 	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
 
@@ -115,25 +123,40 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal)
 	//--------------------
 	//Shadow
 
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
+//	float shadow = 1.0;
+//	vec3 projCoords = IN.shadowProj.xyz / IN.shadowProj.w;
+//	vec2 UVCoords;
+//	UVCoords.x = 0.5 * projCoords.x + 0.5;
+//	UVCoords.y = 0.5 * projCoords.y + 0.5;
+//	float z = 0.5 * projCoords.z + 0.5;
+//
+//	float depth = texture(shadowTex, UVCoords).x;
+//	float bias = 0.0025;
+//
+//	if(depth + bias < z)
+//		shadow = 0.6;
+
+	float shadow = 0.0;
+	vec3 projCoords = IN.fragPosLightSpace.xyz / IN.fragPosLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(shadowTex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	vec3 normal = normalize(IN.normal);
+    vec3 lighterDir = normalize(lightPos - IN.fragPos);
+	float bias = max(0.05 * (1.0 - dot(normal, lighterDir)), 0.005);
+
+	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 	//--------------------
 
-	ambient *= shadow;
-	diffuseRGB *= shadow;
-	specular *= shadow;
+	//ambient *= shadow;
+	//diffuseRGB *= (1.0 - (shadow * 0.7));
+	//specular *= (1.0 - (shadow * 0.7));
 
 	return (ambient + diffuseRGB + specular) * lightDirIntensity;
+
+	//return ambient + shadow * (diffuseRGB + specular) * lightDirIntensity;
 }
 
 vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal)
@@ -158,28 +181,26 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3
 	//--------------------
 	//Shadow
 
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
+	float shadow = 0.0;
+	vec3 projCoords = IN.shadowProj.xyz / IN.shadowProj.w;
+	projCoords = projCoords * 0.5 + 0.5;
 
+	float closestDepth = texture(shadowTex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	vec3 normal = normalize(IN.normal);
+    vec3 lightDir = normalize(_pointLightPos - IN.fragPos);
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 	//--------------------
 
 	ambient *= attenuation * _pointLightIntensity;
-	ambient*= shadow;
 
 	diffuseRGB *= attenuation * _pointLightIntensity;
-	diffuseRGB *= shadow;
+	//diffuseRGB *= shadow;
 	
 	specular *= attenuation * _pointLightIntensity;
-	specular *= shadow;
+	//specular *= shadow;
 
 	return (ambient + diffuseRGB + specular);
 }

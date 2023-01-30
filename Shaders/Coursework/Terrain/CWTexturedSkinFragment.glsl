@@ -38,6 +38,8 @@ in Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+	vec3 fragPos;
+	vec4 fragPosLightSpace;
 	vec4 shadowProj;
 
 	float visibility;
@@ -77,6 +79,12 @@ void main(void)
 	{
 		fragColour = mix(vec4(fogColour.xyz, diffuseAlpha), fragColour, IN.visibility);
 	}
+
+//	float brightness = dot(fragColour.rgb, vec3(0.2126, 0.7152, 0.0722));
+//    if(brightness > 0.75)
+//        fragColour = vec4(fragColour.rgb, 1.0);
+//    else
+//        fragColour = vec4(0.0, 0.0, 0.0, 1.0);
 	//fragColour = vec4(1.0);
 }
 
@@ -91,32 +99,45 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	float specFactor = clamp(dot(halfDir, bumpNormal), 0.0, 1.0);
 	specFactor = pow(specFactor, 60.0f);
 
-	vec3 ambient = 0.3f * texture(diffuseTex, IN.texCoord).rgb;
+	vec3 ambient = 0.1f * texture(diffuseTex, IN.texCoord).rgb;
 	vec3 diffuseRGB = lightDirColour.rgb * texture(diffuseTex, IN.texCoord).rgb * lambert;
 	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
 
 	//--------------------
 	//Shadow
 
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
+//	float shadow = 1.0;
+//	vec3 projCoords = IN.shadowProj.xyz / IN.shadowProj.w;
+//	vec2 UVCoords;
+//	UVCoords.x = 0.5 * projCoords.x + 0.5;
+//	UVCoords.y = 0.5 * projCoords.y + 0.5;
+//	float z = 0.5 * projCoords.z + 0.5;
+//
+//	float depth = texture(shadowTex, UVCoords).x;
+//	float bias = 0.0025;
+//
+//	if(depth + bias < z)
+//		shadow = 0.6;
+
+	float shadow = 0.0;
+	vec3 projCoords = IN.fragPosLightSpace.xyz / IN.fragPosLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(shadowTex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	vec3 normal = normalize(IN.normal);
+    vec3 lighterDir = normalize(lightPos - IN.fragPos);
+	float bias = max(0.05 * (1.0 - dot(normal, lighterDir)), 0.005);
+
+	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 	//--------------------
 
-	ambient *= shadow;
-	diffuseRGB *= shadow;
-	specular *= shadow;
+	//ambient *= shadow;
+	//diffuseRGB *= (1.0 - (shadow * 0.7));
+	//specular *= (1.0 - (shadow * 0.7));
 
-	return ((ambient + diffuseRGB + specular) * lightDirIntensity);
+	return (ambient + diffuseRGB + specular) * lightDirIntensity;
 }
 
 vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal)
@@ -138,28 +159,41 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3
 	//--------------------
 	//Shadow
 
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
+//	float shadow = 1.0;
+//	vec3 projCoords = IN.shadowProj.xyz / IN.shadowProj.w;
+//	vec2 UVCoords;
+//	UVCoords.x = 0.5 * projCoords.x + 0.5;
+//	UVCoords.y = 0.5 * projCoords.y + 0.5;
+//	float z = 0.5 * projCoords.z + 0.5;
+//
+//	float depth = texture(shadowTex, UVCoords).x;
+//	float bias = 0.0025;
+//
+//	if(depth + bias < z)
+//		shadow = 0.6;
+
+	float shadow = 0.0;
+	vec3 projCoords = IN.shadowProj.xyz / IN.shadowProj.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(shadowTex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	vec3 normal = normalize(IN.normal);
+    vec3 lightDir = normalize(_pointLightPos - IN.fragPos);
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+	shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 	//--------------------
 
 	ambient *= attenuation * _pointLightIntensity;
-	ambient *= shadow;
+	//ambient *= shadow;
 
 	diffuseRGB *= attenuation * _pointLightIntensity;
-	diffuseRGB *= shadow;
+	//diffuseRGB *= shadow;
 
 	specular *= attenuation * _pointLightIntensity;
-	specular *= shadow;
+	//specular *= shadow;
 
 	return (ambient + diffuseRGB + specular);
 }

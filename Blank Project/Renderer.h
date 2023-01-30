@@ -36,6 +36,12 @@ protected:
 	CameraPathsManager* cameraPathManager;
 	unsigned int total = 0, display = 0;
 
+	Shader* basicDiffuseShader;
+	Shader* basicDiffuseShaderInstanced;
+	Shader* depthQuadShader;
+	Shader* unlitDiffuseShader;
+	Shader* skeletalAnimShader;
+
 	float boundingRadiusMultiplier;
 	SceneNode* rootNode;
 	TerrainNode* terrainNode;
@@ -44,10 +50,13 @@ protected:
 
 	//--------------------------------------------------------------------
 	//Rocks
-	Shader* basicDiffuseShader;
+
 	SceneNode* rocks2ParentNode;
 	Mesh* rock2Mesh;
 	MeshMaterial* rockMaterial;
+	int rock2Amount;
+	std::vector<GLuint> rockMatTextures;
+	std::vector<GLuint> rockMatBumpTextures;
 	
 	//--------------------------------------------------------------------
 
@@ -61,6 +70,13 @@ protected:
 	void NewTreeProp(Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent = false);
 	void NewTreeProp(Mesh* m, MeshMaterial* mMat, const Vector3& Pos, const Vector3& Rot, const Vector3& Scale, SceneNode* parent, bool isTransparent = false);
 	void LoadTreeData(const std::string& fileName, Mesh* m, MeshMaterial* mMat, SceneNode* parent, bool isTransparent = false);
+
+	void LoadPropData(const std::string& propFilename, Mesh* m, int& propAmount, const float& extraScale = 5.0f);
+	void DrawAllInstances();
+	void DrawInstancedMesh(Mesh* mesh, GLuint texID, GLuint unit, const std::string& uniformName, Shader* s, int amount);
+	void DrawInstancedMesh(Mesh* mesh, Shader* s, const std::vector<GLuint>& matTexturesV, const std::vector<GLuint>& matTexturesBumpV, const int& amount);
+
+	void SetupMeshTextures(Mesh* m, MeshMaterial* meshMaterial, std::vector<GLuint>& matTexturesV, std::vector<GLuint>& matTexturesBumpV);
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -82,6 +98,9 @@ protected:
 	Mesh* castleArchMesh;
 	MeshMaterial* castleArchMaterial;
 	TreePropNode* castleArchPropNode;
+	int castleArchAmount;
+	std::vector<GLuint> castleArchMatTextures;
+	std::vector<GLuint> castleArchMatBumpTextures;
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -90,6 +109,9 @@ protected:
 	Mesh* castleBridgeMesh;
 	MeshMaterial* castleBridgeMaterial;
 	TreePropNode* castleBridgePropNode;
+	int castlePillarAmount;
+	std::vector<GLuint> castlePillarMatTextures;
+	std::vector<GLuint> castlePillarMatBumpTextures;
 	//--------------------------------------------------------------------
 
 	//--------------------------------------------------------------------
@@ -102,6 +124,15 @@ protected:
 	
 	//--------------------------------------------------------------------
 	//Crystals
+	int crystal1Amount;
+	int crystal2Amount;
+
+	std::vector<GLuint> crystal1MatTextures;
+	std::vector<GLuint> crystal1MatBumpTextures;
+	
+	std::vector<GLuint> crystal2MatTextures;
+	std::vector<GLuint> crystal2MatBumpTextures;
+
 	SceneNode* crystals1ParentNode;
 	SceneNode* crystals2ParentNode;
 
@@ -116,7 +147,6 @@ protected:
 	//--------------------------------------------------------------------
 	
 	//Monsters
-	Shader* skeletalAnimShader;
 	
 	SceneNode* monsterDudeParentNode;
 	Mesh* monsterDudeMesh;
@@ -140,7 +170,7 @@ protected:
 
 	//Lights
 	DirectionalLight* dirLight;
-	int numPointLights = 1;
+	int numPointLights = 1, currentLightIndex;
 	std::vector<Light> allPointLights;
 	void CreateNewPointLight();
 
@@ -150,6 +180,7 @@ protected:
 
 	//Cubemap
 	Mesh* quad;
+	Mesh* cube;
 	Skybox* skybox;
 	void DrawSkybox();
 
@@ -173,9 +204,12 @@ protected:
 	Frustum frameFrustum;
 
 	//Shadows
+	Matrix4 lightSpaceMatrix;
+	Vector3 lightLookAtPos;
 	GLuint shadowTex;
 	GLuint shadowFBO;
 	Shader* shadowShader;
+	float zNear = 1.0f, zFar = 25.0f, zLeft = -25.0f, zRight = 25.0f, zTop = -25.0f, zBottom = 25.0f;
 	void DrawShadowScene();
 
 	//void DrawMainTerrain();
@@ -188,4 +222,21 @@ protected:
 
 	std::vector<SceneNode*> transparentNodesList;
 	std::vector<SceneNode*> opaqueNodesList;
+
+	/*unsigned int sampleFBO;
+	unsigned int sampleFBOTex;
+	unsigned int sampleRBO;*/
+
+
+	Shader* sceneShader;
+	Shader* processShader;
+
+	int blurAmount = 5;
+	unsigned int bufferDepthTex;
+	unsigned int bufferColorTex[2];
+	unsigned int bufferFBO;
+	unsigned int bufferPostProcessFBO;
+
+	void PostProcessStage();
+	void FinalRender();
 };

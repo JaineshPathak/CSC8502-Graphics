@@ -49,6 +49,20 @@ void Mesh::Draw()	{
 	glBindVertexArray(0);	
 }
 
+void Mesh::Draw(int instanceAmount)
+{
+	glBindVertexArray(arrayObject);
+	if (bufferObject[INDEX_BUFFER]) 
+	{
+		glDrawElementsInstanced(type, numIndices, GL_UNSIGNED_INT, 0, instanceAmount);
+	}
+	else 
+	{
+		glDrawArraysInstanced(type, 0, numVertices, instanceAmount);
+	}
+	glBindVertexArray(0);
+}
+
 void Mesh::DrawSubMesh(int i) {
 	if (i < 0 || i >= (int)meshLayers.size()) {
 		return;
@@ -62,6 +76,28 @@ void Mesh::DrawSubMesh(int i) {
 	}
 	else {
 		glDrawArrays(type, m.start, m.count);	//Draw the triangle!
+	}
+	glBindVertexArray(0);
+}
+
+void Mesh::DrawSubMesh(int i, int instanceAmount)
+{
+	if (i < 0 || i >= (int)meshLayers.size()) {
+		return;
+	}
+	SubMesh m = meshLayers[i];
+
+	glBindVertexArray(arrayObject);
+	if (bufferObject[INDEX_BUFFER]) 
+	{
+		const GLvoid* offset = (const GLvoid*)(m.start * sizeof(unsigned int));
+		//glDrawElements(type, m.count, GL_UNSIGNED_INT, offset);
+		glDrawElementsInstanced(type, m.count, GL_UNSIGNED_INT, offset, instanceAmount);
+	}
+	else 
+	{
+		//glDrawArrays(type, m.start, m.count);	//Draw the triangle!
+		glDrawArraysInstanced(type, m.start, m.count, instanceAmount);
 	}
 	glBindVertexArray(0);
 }

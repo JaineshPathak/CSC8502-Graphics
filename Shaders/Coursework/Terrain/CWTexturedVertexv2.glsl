@@ -4,6 +4,7 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
 uniform mat4 shadowMatrix;
+uniform mat4 lightSpaceMatrix;
 uniform int enableFog;
 
 uniform vec3 lightPos;
@@ -22,6 +23,8 @@ out Vertex
 	vec3 tangent;
 	vec3 binormal;
 	vec3 worldPos;
+	vec3 fragPos;
+	vec4 fragPosLightSpace;
 	vec4 shadowProj;
 
 	float visibility;
@@ -48,8 +51,10 @@ void main(void)
 
 	vec4 posRelativeToCam = viewMatrix * worldPos;
 	OUT.worldPos = worldPos.xyz;
+	OUT.fragPos = vec3(modelMatrix * vec4(position, 1.0));
+	OUT.fragPosLightSpace = lightSpaceMatrix * vec4(OUT.fragPos, 1.0);
 
-	gl_Position = (projMatrix * viewMatrix) * worldPos;
+	gl_Position = projMatrix * viewMatrix * worldPos;
 
 	if(enableFog == 1)
 	{

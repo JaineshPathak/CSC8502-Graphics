@@ -8,6 +8,12 @@ Matrix4::Matrix4(const float elements[16] )	{
 	memcpy(this->values,elements,16*sizeof(float));
 }
 
+Matrix4::Matrix4(const float val)
+{
+	for (int i = 0; i < 16; i++)
+		values[i] = val;
+}
+
 Matrix4::~Matrix4(void)	{
 	ToIdentity();
 }

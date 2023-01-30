@@ -26,6 +26,7 @@ class Matrix4	{
 public:
 	Matrix4(void);
 	Matrix4(const float elements[16]);
+	Matrix4(const float val);
 	~Matrix4(void);
 
 	float	values[16];

@@ -109,21 +109,47 @@ void main(void)
 
 	//Blur
 	fragColor = vec4(0, 0, 0, 1);
-	vec4 blurredColor = vec4(0, 0, 0, 1);
 	vec2 delta = vec2(0, 0);
 
 	delta = isVertical == 1 ? dFdy(IN.texCoord) : dFdx(IN.texCoord);
 
-	for (int i = 0; i < 7; i++) 
-	{
-		vec2 offset = delta * (i - 3);
-		vec4 tmp = texture(sceneTex, IN.texCoord.xy + offset);
-		//float gray = dot(tmp.rgb, vec3(0.299, 0.587, 0.114));
-		blurredColor += tmp * scaleFactors[i];
-	}
+//	for (int i = 0; i < 7; i++) 
+//	{
+//		vec2 offset = delta * (i - 3);
+//		vec4 tmp = texture(sceneTex, IN.texCoord.xy + offset);		
+//		fragColor += tmp * scaleFactors[i];
+//	}
 
 	vec4 unblurredColor = texture(sceneTex, IN.texCoord);
-	fragColor = mix(unblurredColor, blurredColor, depth);
+	float brightness = dot(unblurredColor.rgb, vec3(0.299, 0.587, 0.114));
+	if(brightness > 0.5)
+	{
+		//fragColor = unblurredColor;
+		vec2 tex_offset = 1.0 / textureSize(sceneTex, 0); // gets size of single texel
+		vec3 result = texture(sceneTex, IN.texCoord).rgb * scaleFactors[0]; // current fragment's contribution
+		if(isVertical == 0)
+		{
+			for(int i = 0; i < 7; ++i)
+			{
+				result += texture(sceneTex, IN.texCoord + vec2(tex_offset.x * i, 0.0)).rgb * scaleFactors[i];
+				result += texture(sceneTex, IN.texCoord - vec2(tex_offset.x * i, 0.0)).rgb * scaleFactors[i];
+			}
+		}
+		else if(isVertical == 1)
+		{
+			for(int i = 0; i < 7; ++i)
+			{
+				result += texture(sceneTex, IN.texCoord + vec2(0.0, tex_offset.y * i)).rgb * scaleFactors[i];
+				result += texture(sceneTex, IN.texCoord - vec2(0.0, tex_offset.y * i)).rgb * scaleFactors[i];
+			}
+		}
+		fragColor = vec4(result, 1.0);
+	}
+	else
+	{
+		fragColor = unblurredColor;
+	}
+	//fragColor = unblurredColor;
 
 	//-----------------------------------------------------------------------
 }
