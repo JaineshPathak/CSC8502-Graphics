@@ -1365,8 +1365,8 @@ void Renderer::RenderScene()
 	//DrawNodes();
 	DrawSkybox();
 	DrawAllInstances();
-	PostProcessStage();
-	FinalRender();
+	//PostProcessStage();
+	//FinalRender();
 	//BloomBlurStage();
 
 	ClearNodeLists();
@@ -1526,7 +1526,7 @@ void Renderer::DrawNode(SceneNode* n, bool includingChild)
 		glActiveTexture(GL_TEXTURE4);
 		glBindTexture(GL_TEXTURE_2D, shadowTex);*/
 
-		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightSpaceMatrix"), 1, false, (float*)&lightSpaceMatrix);
+		glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightSpaceMatrix"), 1, false, (float*)&lightSpaceMatrix);
 
 		modelMatrix = n->GetWorldTransform() * Matrix4::Scale(n->GetModelScale());
 
@@ -1654,7 +1654,7 @@ void Renderer::DrawWater()
 
 void Renderer::DrawAllInstances()
 {
-	glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
+	//glBindFramebuffer(GL_FRAMEBUFFER, bufferFBO);
 	glEnable(GL_DEPTH_TEST);
 
 	//glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -1712,7 +1712,7 @@ void Renderer::DrawAllInstances()
 	
 	DrawNodes();
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	//glDisable(GL_DEPTH_TEST);
 
 	//// clear all relevant buffers
