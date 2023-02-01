@@ -68,11 +68,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 
 	//----------------------
 
-	//std::cout << "Parent Scale: " << rocksParentNode->GetModelScale() << "\n";
-	//std::cout << "Child Scale: " << rockNode->GetModelScale() << "\n";
-
-	//projMatrix = Matrix4::Perspective(1.0, 10000.0f, (float)width / (float)height, 60.0f);
-	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -127,6 +122,7 @@ Renderer::~Renderer(void)
 	delete skybox;
 
 	glDeleteTextures(1, &waterTex);
+	glDeleteTextures(1, &waterBump);
 
 	delete basicDiffuseShader;
 	delete skeletalAnimShader;
