@@ -4,7 +4,7 @@
 
 int main()	
 {
-	Window w("CSC8502 Coursework - Jainesh Pathak!", 1280, 720, false);
+	Window w("CSC8502 Coursework - Jainesh Pathak!", 1280, 768, false);
 
 	if(!w.HasInitialised()) {
 		return -1;

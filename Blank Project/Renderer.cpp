@@ -36,80 +36,19 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	ImGui_ImplWin32_Init(parent.GetHandle());
 	ImGui_ImplOpenGL3_Init("#version 330");
 	//-----------------------------------------------------------
-
-	rootNode = new SceneNode();
-	rootNode->nodeName = "Root";
-
-	terrainNode = new TerrainNode();
 	
-	//------------------------------------------------------------------
-	//Rocks
-	rocks2ParentNode = new SceneNode();
-	rocks2ParentNode->nodeName = "Rocks2Parent";
-	//------------------------------------------------------------------
-
-	//------------------------------------------------------------------
-	//Trees
-	treesParentNode = new SceneNode();
-	treesParentNode->nodeName = "TreesParent";
-	//------------------------------------------------------------------
-
-	//------------------------------------------------------------------
-	// Castle
-	castleParentNode = new SceneNode();
-	castleParentNode->nodeName = "CastleParent";
-
-	castlePillarParentNode = new SceneNode();
-	castlePillarParentNode->nodeName = "CastlePillarsParent";
-
-	castleArchParentNode = new SceneNode();
-	castleArchParentNode->nodeName = "CastleArchParent";
-	
-	castleBridgeParentNode = new SceneNode();
-	castleBridgeParentNode->nodeName = "CastleBridgeParent";
-	//------------------------------------------------------------------
-
-	//Ruins
-	ruinsParentNode = new SceneNode();
-	ruinsParentNode->nodeName = "RuinsParent";
-	//------------------------------------------------------------------
-	
-	// Crystals
-	crystals1ParentNode = new SceneNode();
-	crystals1ParentNode->nodeName = "Crystal01Parent";
-	crystals2ParentNode = new SceneNode();
-	crystals2ParentNode->nodeName = "Crystal02Parent";
-	//------------------------------------------------------------------
-
-	//Monsters
-	monsterDudeParentNode = new SceneNode();
-	monsterDudeParentNode->nodeName = "MonstersDudeParent";
-
-	monsterCrabParentNode = new SceneNode();
-	monsterCrabParentNode->nodeName = "MonstersCrabParent";
-	//------------------------------------------------------------------
-
-	
-	rootNode->AddChild(terrainNode);
-	terrainNode->AddChild(rocks2ParentNode);
-	//terrainNode->AddChild(rocks5aParentNode);
-	terrainNode->AddChild(treesParentNode);
-	terrainNode->AddChild(castleParentNode);
-	terrainNode->AddChild(castlePillarParentNode);
-	terrainNode->AddChild(castleArchParentNode);
-	terrainNode->AddChild(castleBridgeParentNode);
-	terrainNode->AddChild(ruinsParentNode);
-	terrainNode->AddChild(crystals1ParentNode);
-	terrainNode->AddChild(crystals2ParentNode);
-	terrainNode->AddChild(monsterDudeParentNode);
-	terrainNode->AddChild(monsterCrabParentNode);
-
-	terrainHeightmapSize = terrainNode->GetHeightmapSize();
-	cameraMain = new Camera();
-	cameraMain->SetDefaultSpeed(850.0f);
-	cameraMain->SetPosition(terrainHeightmapSize * Vector3(0.5f, 2.5f, 0.5f));
-
-	cameraPathManager = new CameraPathsManager(enableAutoCameraPaths, CAMERAPATHS, cameraMain);
+	InitNodes();
+	if (!InitCamera()) return;
+	if (!InitShaders()) return;
+	if (!InitLights()) return;
+	if (!InitMeshes()) return;
+	if (!InitMeshMaterials()) return;
+	if (!InitMeshAnimations()) return;
+	if (!InitSkybox()) return;
+	InitData();
+	InitWater();
+	InitFog();
+	SetupShadows();
 
 #pragma region OLD
 	/*rocksMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock2.msh");
@@ -124,130 +63,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	rockNode->SetTexture(rocksTexture);
 	rockNode->SetShader(rocksShader);*/
 #pragma endregion
-
-	basicDiffuseShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
-	
-	//Rocks
-	rock2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
-	//rock5aMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock5A.msh");
-	rockMaterial = new MeshMaterial(MESHDIRCOURSE"Rocks/Mesh_Rock5D.mat", true);
-	//rockTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	
-	//LoadRockData(ROCK2FILE, rock2Mesh, rockTexture, rocks2ParentNode);		//Rock2
-	//LoadRockData(ROCK5AFILE, rock5aMesh, rockTexture, rocks5aParentNode);		//Rock5a
-	LoadTreeData(ROCK2FILE, rock2Mesh, rockMaterial, rocks2ParentNode);
-	//LoadTreeData(ROCK5AFILE, rock5aMesh, rockMaterial, rocks5aParentNode);
-
-	//Trees
-	treeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Trees/Tree_01.msh");
-	treeMaterial = new MeshMaterial(MESHDIRCOURSE"Trees/Tree_01.mat", true);
-	LoadTreeData(TREESFILE, treeMesh, treeMaterial, treesParentNode, true);
-
-	//Castle
-	castleMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
-	castleMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastleMain.mat", true);
-	LoadTreeData(CASTLEFILE, castleMesh, castleMaterial, castleParentNode);
-
-	//Castle Pillar
-	castlePillarMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastlePillar.msh");
-	castlePillarMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastlePillar.mat", true);
-	LoadTreeData(CASTLEPILLARFILE, castlePillarMesh, castlePillarMaterial, castlePillarParentNode);
-
-	//Castle Arch
-	castleArchMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_CastleArch.msh");
-	castleArchMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_CastleArch.mat", true);
-	LoadTreeData(CASTLEARCHFILE, castleArchMesh, castleArchMaterial, castleArchParentNode);
-
-	//Castle Bridge
-	castleBridgeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
-	castleBridgeMaterial = new MeshMaterial(MESHDIRCOURSE"Castle/Mesh_Bridge.mat", true);
-	LoadTreeData(CASTLEBRIDGEFILE, castleBridgeMesh, castleBridgeMaterial, castleBridgeParentNode);
-
-	//Ruins
-	ruinsMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
-	ruinsMaterial = new MeshMaterial(MESHDIRCOURSE"Ruins/Mesh_RuinsMain.mat", true);
-	LoadTreeData(RUINSFILE, ruinsMesh, ruinsMaterial, ruinsParentNode);
-
-	//Crystals
-	crystal1Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Crystals/Mesh_Crystal_01.msh");
-	crystal2Mesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Crystals/Mesh_Crystal_02.msh");
-
-	crystal1Material = new MeshMaterial(MESHDIRCOURSE"Crystals/Mesh_Crystal_01.mat", true);
-	crystal2Material = new MeshMaterial(MESHDIRCOURSE"Crystals/Mesh_Crystal_02.mat", true);
-	LoadTreeData(CRYSTAL01FILE, crystal1Mesh, crystal1Material, crystals1ParentNode);
-	LoadTreeData(CRYSTAL02FILE, crystal2Mesh, crystal2Material, crystals2ParentNode);
-
-	//Monsters
-	//Ghoul
-	skeletalAnimShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
-
-	//Dude
-	monsterDudeMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Monsters/Monster_Dude.msh");
-	monsterDudeMaterial = new MeshMaterial(MESHDIRCOURSE"Monsters/Monster_Dude.mat", true);
-	monsterDudeAnim = new MeshAnimation(MESHDIRCOURSE"Monsters/Monster_Dude.anm", true);
-	LoadAnimNodeData(MONSTERDUDEFILE, monsterDudeMesh, monsterDudeMaterial, monsterDudeAnim, monsterDudeParentNode, false);
-
-	//Crab
-	monsterCrabMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Monsters/Monster_Crab.msh");
-	monsterCrabMaterial = new MeshMaterial(MESHDIRCOURSE"Monsters/Monster_Crab.mat", true);
-	monsterCrabAnim = new MeshAnimation(MESHDIRCOURSE"Monsters/Monster_Crab.anm", true);
-	LoadAnimNodeData(MONSTERCRABFILE, monsterCrabMesh, monsterCrabMaterial, monsterCrabAnim, monsterCrabParentNode, false);
-	
-	//Lights
-	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
-	if (FileHandler::FileExists(LIGHTSDATAFILE))
-	{
-		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
-		if ((int)allPointLights.size() > 0)
-			numPointLights = (int)allPointLights.size();
-	}
-	else
-	{
-		for (int i = 0; i < numPointLights && (numPointLights > 0); i++)
-			CreateNewPointLight();
-	}
-
-	//Skybox Cubemap
-	skybox = new Skybox();
-
-	//Water
-	reflectShader = new Shader(SHADERDIRCOURSETERRAIN"CWReflectVertex.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragment.glsl");
-	waterTex = SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	waterBump = SOIL_load_OGL_texture(TEXTUREDIR"waterbump.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	SetTextureRepeating(waterTex, true);
-	SetTextureRepeating(waterBump, true);
-	waterPosition.x = terrainHeightmapSize.x * 0.5f;
-	waterPosition.y = terrainHeightmapSize.y * 0.2355f;
-	waterPosition.z = terrainHeightmapSize.z * 0.5f;
-	waterRotate = 0.0f;
-	waterCycle = 0.0f;
-	
-	//Fog
-	if (FileHandler::FileExists(FOGDATAFILE))
-		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
-
-	//Shadows
-	glEnable(GL_DEPTH_TEST);
-
-	shadowShader = new Shader("shadowVert.glsl", "shadowFrag.glsl");
-	glGenTextures(1, &shadowTex);
-	glBindTexture(GL_TEXTURE_2D, shadowTex);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_SIZE, SHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	//----------------------
-
-	glGenFramebuffers(1, &shadowFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex, 0);
-	glDrawBuffer(GL_NONE);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//----------------------
 
@@ -326,6 +141,271 @@ Renderer::~Renderer(void)
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+}
+
+void Renderer::InitNodes()
+{
+	//-----------------------------------------------------------
+	//Root Node
+	rootNode = new SceneNode();
+	rootNode->nodeName = "Root";
+
+	//Terrain Node
+	terrainNode = new TerrainNode();
+	terrainHeightmapSize = terrainNode->GetHeightmapSize();
+
+	//------------------------------------------------------------------
+	//Rocks
+	rocks2ParentNode = new SceneNode();
+	rocks2ParentNode->nodeName = "Rocks2Parent";
+	//------------------------------------------------------------------
+
+	//------------------------------------------------------------------
+	//Trees
+	treesParentNode = new SceneNode();
+	treesParentNode->nodeName = "TreesParent";
+	//------------------------------------------------------------------
+
+	//------------------------------------------------------------------
+	// Castle
+	castleParentNode = new SceneNode();
+	castleParentNode->nodeName = "CastleParent";
+
+	castlePillarParentNode = new SceneNode();
+	castlePillarParentNode->nodeName = "CastlePillarsParent";
+
+	castleArchParentNode = new SceneNode();
+	castleArchParentNode->nodeName = "CastleArchParent";
+
+	castleBridgeParentNode = new SceneNode();
+	castleBridgeParentNode->nodeName = "CastleBridgeParent";
+	//------------------------------------------------------------------
+
+	//Ruins
+	ruinsParentNode = new SceneNode();
+	ruinsParentNode->nodeName = "RuinsParent";
+	//------------------------------------------------------------------
+
+	// Crystals
+	crystals1ParentNode = new SceneNode();
+	crystals1ParentNode->nodeName = "Crystal01Parent";
+	crystals2ParentNode = new SceneNode();
+	crystals2ParentNode->nodeName = "Crystal02Parent";
+	//------------------------------------------------------------------
+
+	//Monsters
+	monsterDudeParentNode = new SceneNode();
+	monsterDudeParentNode->nodeName = "MonstersDudeParent";
+
+	monsterCrabParentNode = new SceneNode();
+	monsterCrabParentNode->nodeName = "MonstersCrabParent";
+	//------------------------------------------------------------------
+
+	rootNode->AddChild(terrainNode);
+	terrainNode->AddChild(rocks2ParentNode);
+	terrainNode->AddChild(treesParentNode);
+	terrainNode->AddChild(castleParentNode);
+	terrainNode->AddChild(castlePillarParentNode);
+	terrainNode->AddChild(castleArchParentNode);
+	terrainNode->AddChild(castleBridgeParentNode);
+	terrainNode->AddChild(ruinsParentNode);
+	terrainNode->AddChild(crystals1ParentNode);
+	terrainNode->AddChild(crystals2ParentNode);
+	terrainNode->AddChild(monsterDudeParentNode);
+	terrainNode->AddChild(monsterCrabParentNode);	
+}
+
+bool Renderer::InitCamera()
+{
+	cameraMain = new Camera();
+	if (cameraMain == nullptr)
+		return false;
+
+	cameraMain->SetDefaultSpeed(850.0f);
+	cameraMain->SetPosition(terrainHeightmapSize * Vector3(0.5f, 2.5f, 0.5f));
+
+	cameraPathManager = new CameraPathsManager(enableAutoCameraPaths, CAMERAPATHS, cameraMain);
+
+	return true;
+}
+
+bool Renderer::InitLights()
+{
+	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
+	if (dirLight == nullptr)
+		return false;
+	if (FileHandler::FileExists(LIGHTSDATAFILE))
+	{
+		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
+		if ((int)allPointLights.size() > 0)
+			numPointLights = (int)allPointLights.size();
+	}
+	else
+	{
+		for (int i = 0; i < numPointLights && (numPointLights > 0); i++)
+			CreateNewPointLight();
+	}
+
+	return true;
+}
+
+bool Renderer::InitMeshes()
+{
+	if (!LoadMesh(&rock2Mesh, MESHDIRCOURSE, "Rocks/Mesh_Rock5D.msh")) return false;
+	if (!LoadMesh(&treeMesh, MESHDIRCOURSE, "Trees/Tree_01.msh")) return false;
+	if (!LoadMesh(&castleMesh, MESHDIRCOURSE, "Castle/Mesh_CastleMain.msh")) return false;
+	if (!LoadMesh(&castlePillarMesh, MESHDIRCOURSE, "Castle/Mesh_CastlePillar.msh")) return false;
+	if (!LoadMesh(&castleArchMesh, MESHDIRCOURSE, "Castle/Mesh_CastleArch.msh")) return false;
+	if (!LoadMesh(&castleBridgeMesh, MESHDIRCOURSE, "Castle/Mesh_Bridge.msh")) return false;
+	if (!LoadMesh(&ruinsMesh, MESHDIRCOURSE, "Ruins/Mesh_RuinsMain.msh")) return false;
+	if (!LoadMesh(&crystal1Mesh, MESHDIRCOURSE, "Crystals/Mesh_Crystal_01.msh")) return false;
+	if (!LoadMesh(&crystal2Mesh, MESHDIRCOURSE, "Crystals/Mesh_Crystal_02.msh")) return false;
+	if (!LoadMesh(&monsterDudeMesh, MESHDIRCOURSE, "Monsters/Monster_Dude.msh")) return false;
+	if (!LoadMesh(&monsterCrabMesh, MESHDIRCOURSE, "Monsters/Monster_Crab.msh")) return false;
+
+	return true;
+}
+
+bool Renderer::InitShaders()
+{
+	if (!LoadShader(&basicDiffuseShader, SHADERDIRCOURSETERRAIN, "CWTexturedVertexv2.glsl", "CWTexturedFragmentv2.glsl")) return false;
+	if (!LoadShader(&skeletalAnimShader, SHADERDIRCOURSETERRAIN, "CWTexturedSkinVertex.glsl", "CWTexturedSkinFragment.glsl")) return false;
+	if (!LoadShader(&reflectShader, SHADERDIRCOURSETERRAIN, "CWReflectVertex.glsl", "CWReflectFragment.glsl")) return false;
+	if (!LoadShader(&shadowShader, "", "shadowVert.glsl", "shadowFrag.glsl")) return false;
+
+	return true;
+}
+
+bool Renderer::InitMeshMaterials()
+{
+	if (!LoadMeshMaterial(&rockMaterial, MESHDIRCOURSE, "Rocks/Mesh_Rock5D.mat")) return false;
+	if (!LoadMeshMaterial(&treeMaterial, MESHDIRCOURSE, "Trees/Tree_01.mat")) return false;
+	if (!LoadMeshMaterial(&castleMaterial, MESHDIRCOURSE, "Castle/Mesh_CastleMain.mat")) return false;
+	if (!LoadMeshMaterial(&castleArchMaterial, MESHDIRCOURSE, "Castle/Mesh_CastleArch.mat")) return false;
+	if (!LoadMeshMaterial(&castlePillarMaterial, MESHDIRCOURSE, "Castle/Mesh_CastlePillar.mat")) return false;
+	if (!LoadMeshMaterial(&castleBridgeMaterial, MESHDIRCOURSE, "Castle/Mesh_Bridge.mat")) return false;
+	if (!LoadMeshMaterial(&ruinsMaterial, MESHDIRCOURSE, "Ruins/Mesh_RuinsMain.mat")) return false;
+	if (!LoadMeshMaterial(&crystal1Material, MESHDIRCOURSE, "Crystals/Mesh_Crystal_01.mat")) return false;
+	if (!LoadMeshMaterial(&crystal2Material, MESHDIRCOURSE, "Crystals/Mesh_Crystal_02.mat")) return false;
+	if (!LoadMeshMaterial(&monsterDudeMaterial, MESHDIRCOURSE, "Monsters/Monster_Dude.mat")) return false;
+	if (!LoadMeshMaterial(&monsterCrabMaterial, MESHDIRCOURSE, "Monsters/Monster_Crab.mat")) return false;
+
+	return true;
+}
+
+bool Renderer::InitMeshAnimations()
+{
+	if (!LoadMeshAnimations(&monsterDudeAnim, MESHDIRCOURSE, "Monsters/Monster_Dude.anm")) return false;
+	if (!LoadMeshAnimations(&monsterCrabAnim, MESHDIRCOURSE, "Monsters/Monster_Crab.anm")) return false;
+
+	return true;
+}
+
+bool Renderer::InitSkybox()
+{
+	skybox = new Skybox();
+	if (skybox == nullptr)
+		return false;
+	
+	return true;
+}
+
+void Renderer::InitWater()
+{
+	waterTex = SOIL_load_OGL_texture(TEXTUREDIR"water.tga", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	waterBump = SOIL_load_OGL_texture(TEXTUREDIR"waterbump.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+
+	SetTextureRepeating(waterTex, true);
+	SetTextureRepeating(waterBump, true);
+
+	waterPosition.x = terrainHeightmapSize.x * 0.5f;
+	waterPosition.y = terrainHeightmapSize.y * 0.2355f;
+	waterPosition.z = terrainHeightmapSize.z * 0.5f;
+	waterRotate = 0.0f;
+	waterCycle = 0.0f;	
+}
+
+void Renderer::InitData()
+{
+	LoadTreeData(ROCK2FILE, rock2Mesh, rockMaterial, rocks2ParentNode);
+	LoadTreeData(TREESFILE, treeMesh, treeMaterial, treesParentNode, true);
+	LoadTreeData(CASTLEFILE, castleMesh, castleMaterial, castleParentNode);
+	LoadTreeData(CASTLEPILLARFILE, castlePillarMesh, castlePillarMaterial, castlePillarParentNode);
+	LoadTreeData(CASTLEARCHFILE, castleArchMesh, castleArchMaterial, castleArchParentNode);
+	LoadTreeData(CASTLEBRIDGEFILE, castleBridgeMesh, castleBridgeMaterial, castleBridgeParentNode);
+	LoadTreeData(RUINSFILE, ruinsMesh, ruinsMaterial, ruinsParentNode);
+	LoadTreeData(CRYSTAL01FILE, crystal1Mesh, crystal1Material, crystals1ParentNode);
+	LoadTreeData(CRYSTAL02FILE, crystal2Mesh, crystal2Material, crystals2ParentNode);
+
+	LoadAnimNodeData(MONSTERDUDEFILE, monsterDudeMesh, monsterDudeMaterial, monsterDudeAnim, monsterDudeParentNode, false);
+	LoadAnimNodeData(MONSTERCRABFILE, monsterCrabMesh, monsterCrabMaterial, monsterCrabAnim, monsterCrabParentNode, false);
+}
+
+void Renderer::InitFog()
+{
+	if (FileHandler::FileExists(FOGDATAFILE))
+		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
+}
+
+void Renderer::SetupShadows()
+{
+	//Shadows
+	glEnable(GL_DEPTH_TEST);
+
+	glGenTextures(1, &shadowTex);
+	glBindTexture(GL_TEXTURE_2D, shadowTex);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_SIZE, SHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	//----------------------
+
+	glGenFramebuffers(1, &shadowFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowTex, 0);
+	glDrawBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+bool Renderer::LoadMesh(Mesh** mesh, const std::string& pathPrefix, const std::string& meshFileName)
+{
+	*mesh = Mesh::LoadFromMeshFile(pathPrefix + meshFileName);
+	if (*mesh == nullptr)
+		return false;
+
+	return true;
+}
+
+bool Renderer::LoadShader(Shader** shader, const std::string& pathPrefix, const std::string& shaderVertexFileName, const std::string& shaderFragmentFileName)
+{
+	*shader = new Shader(pathPrefix + shaderVertexFileName, pathPrefix + shaderFragmentFileName);
+	if (*shader == nullptr)
+		return false;
+	
+	return true;
+}
+
+bool Renderer::LoadMeshMaterial(MeshMaterial** material, const std::string& pathPrefix, const std::string& materialFileName)
+{
+	*material = new MeshMaterial(pathPrefix + materialFileName, true);
+	if (*material == nullptr)
+		return false;
+
+	return true;
+}
+
+bool Renderer::LoadMeshAnimations(MeshAnimation** anim, const std::string& pathPrefix, const std::string& animFileName)
+{
+	*anim = new MeshAnimation(pathPrefix + animFileName, true);
+	if (*anim == nullptr)
+		return false;
+
+	return true;
 }
 
 //------------------------------------------------------------------
@@ -1199,7 +1279,7 @@ void Renderer::DrawShadowScene()
 	//viewMatrix = Matrix4::BuildViewMatrix(light->GetDirection(), Vector3(heightMap->GetHeightmapSize().x / 2, 0, heightMap->GetHeightmapSize().z / 2));
 	float _nearPlane = 1.0f, _farPlane = 100.0f;
 	//projMatrix = Matrix4::Orthographic(-100.0f, 100.0f, -100.0f, 100.0f, _nearPlane, _farPlane);
-	projMatrix = Matrix4::Perspective(1, 100.0f, 1, 45.0f);
+	projMatrix = Matrix4::Perspective(1, 100.0f, 1, 60.0f);
 	viewMatrix = Matrix4::BuildViewMatrix(allPointLights[numPointLights - 1].GetPosition(), Vector3(0, 0, 0));
 	shadowMatrix = projMatrix * viewMatrix;
 

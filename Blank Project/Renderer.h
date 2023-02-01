@@ -34,6 +34,24 @@ protected:
 	bool enableAutoCameraPaths = true;
 	CameraPathsManager* cameraPathManager;
 
+	void InitNodes();
+	bool InitCamera();
+	bool InitLights();
+	bool InitMeshes();
+	bool InitShaders();
+	bool InitMeshMaterials();
+	bool InitMeshAnimations();
+	bool InitSkybox();
+	void InitWater();
+	void InitData();
+	void InitFog();
+	void SetupShadows();
+
+	bool LoadMesh(Mesh** mesh, const std::string& pathPrefix, const std::string& meshFileName);
+	bool LoadShader(Shader** shader, const std::string& pathPrefix, const std::string& shaderVertexFileName, const std::string& shaderFragmentFileName);
+	bool LoadMeshMaterial(MeshMaterial** material, const std::string& pathPrefix, const std::string& materialFileName);
+	bool LoadMeshAnimations(MeshAnimation** anim, const std::string& pathPrefix, const std::string& animFileName);
+
 	SceneNode* rootNode;
 	TerrainNode* terrainNode;
 	//TerrainHeightmap* terrainMain;
