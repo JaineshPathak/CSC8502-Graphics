@@ -25,6 +25,5 @@ void main(void)
 
 	vec4 splatmap = texture(diffuseSplatmapTex, IN.texCoord / 16.0f);
 
-	vec4 finalColor = grassTex + rocksTex + groundTex;
-	fragColour = finalColor;
+	fragColour = grassTex + rocksTex + groundTex;
 }

@@ -59,6 +59,7 @@ public:
 	bool			HasInitialised() const;	
 
 	static void SetTextureRepeating(GLuint target, bool repeating);
+	static bool BindTexture(GLuint texID, GLuint unit, const std::string& uniformName, Shader* s);
 	
 protected:
 	virtual void	Resize(int x, int y);	

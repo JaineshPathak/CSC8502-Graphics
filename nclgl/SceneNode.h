@@ -8,9 +8,10 @@
 class SceneNode
 {
 public:
-	std::string name = "Empty Node";
+	std::string nodeName = "Empty Node";
 
 	SceneNode(Mesh* m = NULL, Vector4 col = Vector4());
+	SceneNode(const std::string& name);
 	~SceneNode(void);
 
 	void SetTransform(const Matrix4& matrix) { localTransform = matrix; }
@@ -21,10 +22,21 @@ public:
 	void SetColor(Vector4 c) { colour = c; }
 
 	Vector3 GetModelScale() const { return modelScale; }
-	void SetModelScale(Vector3 s) { modelScale = s; }
+	void SetModelScale(const Vector3& s) { modelScale = s; }
 
-	Mesh* GetMesh() const { return mesh; }
+	Vector3 GetModelRotation() const { return modelRotation; }
+	void SetModelRotation(const Vector3& r) { modelRotation = r; }
+
+	Matrix4 GetRotationMatrix() const 
+	{
+		return Matrix4::Rotation(modelRotation.x, Vector3(1, 0, 0)) * Matrix4::Rotation(modelRotation.y, Vector3(0, 1, 0)) * Matrix4::Rotation(modelRotation.z, Vector3(0, 0, 1));
+	}
+
+	virtual Mesh* GetMesh() const { return mesh; }
 	void SetMesh(Mesh* m) { mesh = m; }
+
+	Shader* GetShader() const { return shader; }
+	void SetShader(Shader* s) { shader = s; }
 
 	void AddChild(SceneNode* s);
 	SceneNode* GetChild(int index);
@@ -49,13 +61,17 @@ public:
 		return (a->distanceFromCamera < b->distanceFromCamera) ? true : false;
 	}
 
+	int GetChildCount() { return (int)children.size(); }
+
 protected:	
 	SceneNode* parent;
 	Mesh* mesh;
 	Matrix4 localTransform;
 	Matrix4 worldTransform;
 	Vector3 modelScale;
+	Vector3 modelRotation;
 	Vector4 colour;
+	Shader* shader;
 	std::vector<SceneNode*> children;
 
 	float distanceFromCamera;

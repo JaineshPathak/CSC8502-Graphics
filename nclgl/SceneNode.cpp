@@ -6,6 +6,21 @@ SceneNode::SceneNode(Mesh* m, Vector4 col)
 	colour = col;
 	parent = NULL;
 	modelScale = Vector3(1, 1, 1);
+	modelRotation = Vector3(0, 0, 0);
+
+	boundingRadius = 1.0f;
+	distanceFromCamera = 0.0f;
+	texture = 0;
+}
+
+SceneNode::SceneNode(const std::string& name)
+{
+	nodeName = name;
+	mesh = nullptr;
+	colour = Vector4(1, 1, 1, 1);
+	parent = NULL;
+	modelScale = Vector3(1, 1, 1);
+	modelRotation = Vector3(0, 0, 0);
 
 	boundingRadius = 1.0f;
 	distanceFromCamera = 0.0f;

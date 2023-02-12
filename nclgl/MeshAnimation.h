@@ -9,6 +9,7 @@ class MeshAnimation
 public:
 	MeshAnimation();
 	MeshAnimation(const std::string& filename);
+	MeshAnimation(const std::string& filename, bool ignoreMeshDir);
 	~MeshAnimation();
 
 	unsigned int GetJointCount() const {

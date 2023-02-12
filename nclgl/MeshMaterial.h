@@ -26,6 +26,7 @@ class MeshMaterial
 {
 public:
 	MeshMaterial(const std::string& filename);
+	MeshMaterial(const std::string& filename, bool ignoreMeshDir);
 	~MeshMaterial() {}
 	const MeshMaterialEntry* GetMaterialForLayer(int i) const;
 

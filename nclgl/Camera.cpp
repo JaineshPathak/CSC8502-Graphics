@@ -1,9 +1,13 @@
 #include "Camera.h"
 #include "Window.h"
 #include <algorithm>
+#include <imgui/imgui.h>
 
 void Camera::UpdateCamera(float dt)
 {
+	if (ImGui::GetIO().MouseDrawCursor)
+		return;
+
 	camRotation.x -= (Window::GetMouse()->GetRelativePosition().y) * 2.0f;
 	camRotation.y -= (Window::GetMouse()->GetRelativePosition().x) * 2.0f;
 

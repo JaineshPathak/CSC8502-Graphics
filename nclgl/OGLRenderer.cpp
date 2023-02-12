@@ -225,6 +225,30 @@ void OGLRenderer::SetTextureRepeating(GLuint target, bool repeating)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+bool OGLRenderer::BindTexture(GLuint texID, GLuint unit, const std::string& uniformName, Shader* s)
+{
+	GLint uniformID = glGetUniformLocation(s->GetProgram(), uniformName.c_str());
+
+	if (uniformID < 0)
+	{
+		std::cout << "Trying to bind invalid 2D texture uniform!\n"; //Put breakpoint on this!
+		return false;
+	}
+
+	/*if (currentShader != s)
+	{
+		std::cout << "Trying to set shader uniform on wrong shader!\n";
+		return false;
+	}*/
+
+	glActiveTexture(GL_TEXTURE0 + unit); //A neat trick!
+	glBindTexture(GL_TEXTURE_2D, texID);
+
+	glUniform1i(uniformID, unit);
+
+	return true;
+}
+
 void OGLRenderer::SetShaderLight(const Light& L)
 {
 	glUniform3fv(glGetUniformLocation(currentShader->GetProgram(), "lightPos"), 1, (float*)&L.GetPosition());
