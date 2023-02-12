@@ -339,8 +339,10 @@ void Renderer::InitData()
 
 void Renderer::InitFog()
 {
-	if (FileHandler::FileExists(FOGDATAFILE))
-		FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
+	if (!FileHandler::FileExists(FOGDATAFILE))
+		return;
+	
+	FileHandler::ReadFogFile(FOGDATAFILE, enableFog, fogColour);
 }
 
 void Renderer::SetupShadows()
@@ -1229,11 +1231,8 @@ void Renderer::RenderScene()
 		SortNodeLists();
 	}
 
-	//glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	//DrawMainTerrain();	
-	//UpdateShaderMatrices();
 	DrawShadowScene();
 	DrawSkybox();
 	if (blendFix)
