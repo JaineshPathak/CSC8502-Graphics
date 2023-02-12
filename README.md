@@ -1,4 +1,4 @@
-# CSC8502_Coursework - Elden Ring Theme
+# CSC8502 - Elden Ring Theme
 
 A part of CSC8502 Coursework, Newcastle University. NCLGL library framework was provided by the University. The task was to make an Elden Ring style level in OpenGL and C++.
 
