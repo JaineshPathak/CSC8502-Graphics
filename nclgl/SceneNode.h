@@ -11,6 +11,7 @@ public:
 	std::string nodeName = "Empty Node";
 
 	SceneNode(Mesh* m = NULL, Vector4 col = Vector4());
+	SceneNode(const std::string& name);
 	~SceneNode(void);
 
 	void SetTransform(const Matrix4& matrix) { localTransform = matrix; }

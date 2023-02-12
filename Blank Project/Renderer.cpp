@@ -50,24 +50,6 @@ Renderer::Renderer(Window &parent) : OGLRenderer(parent)
 	InitFog();
 	SetupShadows();
 
-#pragma region OLD
-	/*rocksMesh = Mesh::LoadFromMeshFile(MESHDIRCOURSE"Rocks/Mesh_Rock2.msh");
-	rocksShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragment.glsl");
-	rocksTexture = SOIL_load_OGL_texture(TEXTUREDIRCOURSE"Rocks/Rock5_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-
-	rockNode = new SceneNode();
-	rockNode->nodeName = "Rock01";
-	rockNode->SetMesh(rocksMesh);
-	rockNode->SetTransform(Matrix4::Translation(Vector3(871.2f, 117.5f, 418.5f)));
-	rockNode->SetModelScale(Vector3(3.5f, 7.5f, 3.5f));
-	rockNode->SetTexture(rocksTexture);
-	rockNode->SetShader(rocksShader);*/
-#pragma endregion
-
-	//----------------------
-
-	//----------------------
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -143,8 +125,7 @@ void Renderer::InitNodes()
 {
 	//-----------------------------------------------------------
 	//Root Node
-	rootNode = new SceneNode();
-	rootNode->nodeName = "Root";
+	rootNode = new SceneNode("Root");
 
 	//Terrain Node
 	terrainNode = new TerrainNode();
@@ -152,49 +133,34 @@ void Renderer::InitNodes()
 
 	//------------------------------------------------------------------
 	//Rocks
-	rocks2ParentNode = new SceneNode();
-	rocks2ParentNode->nodeName = "Rocks2Parent";
+	rocks2ParentNode = new SceneNode("Rocks2Parent");
 	//------------------------------------------------------------------
 
 	//------------------------------------------------------------------
 	//Trees
-	treesParentNode = new SceneNode();
-	treesParentNode->nodeName = "TreesParent";
+	treesParentNode = new SceneNode("TreesParent");
 	//------------------------------------------------------------------
 
 	//------------------------------------------------------------------
 	// Castle
-	castleParentNode = new SceneNode();
-	castleParentNode->nodeName = "CastleParent";
-
-	castlePillarParentNode = new SceneNode();
-	castlePillarParentNode->nodeName = "CastlePillarsParent";
-
-	castleArchParentNode = new SceneNode();
-	castleArchParentNode->nodeName = "CastleArchParent";
-
-	castleBridgeParentNode = new SceneNode();
-	castleBridgeParentNode->nodeName = "CastleBridgeParent";
+	castleParentNode = new SceneNode("CastleParent");
+	castlePillarParentNode = new SceneNode("CastlePillarsParent");
+	castleArchParentNode = new SceneNode("CastleArchParent");
+	castleBridgeParentNode = new SceneNode("CastleBridgeParent");
 	//------------------------------------------------------------------
 
 	//Ruins
-	ruinsParentNode = new SceneNode();
-	ruinsParentNode->nodeName = "RuinsParent";
+	ruinsParentNode = new SceneNode("RuinsParent");
 	//------------------------------------------------------------------
 
 	// Crystals
-	crystals1ParentNode = new SceneNode();
-	crystals1ParentNode->nodeName = "Crystal01Parent";
-	crystals2ParentNode = new SceneNode();
-	crystals2ParentNode->nodeName = "Crystal02Parent";
+	crystals1ParentNode = new SceneNode("Crystal01Parent");
+	crystals2ParentNode = new SceneNode("Crystal02Parent");
 	//------------------------------------------------------------------
 
 	//Monsters
-	monsterDudeParentNode = new SceneNode();
-	monsterDudeParentNode->nodeName = "MonstersDudeParent";
-
-	monsterCrabParentNode = new SceneNode();
-	monsterCrabParentNode->nodeName = "MonstersCrabParent";
+	monsterDudeParentNode = new SceneNode("MonstersDudeParent");
+	monsterCrabParentNode = new SceneNode("MonstersCrabParent");
 	//------------------------------------------------------------------
 
 	rootNode->AddChild(terrainNode);
@@ -230,6 +196,7 @@ bool Renderer::InitLights()
 	dirLight = new DirectionalLight(Vector3(1, 1, 0), Vector4(1.0f, 0.8703716f, 0.7294118f, 1.0f), Vector4());
 	if (dirLight == nullptr)
 		return false;
+
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
 	{
 		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *dirLight, allPointLights);
