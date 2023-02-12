@@ -10,4 +10,7 @@ The NCLGL framework was provided by Rich Davison.
 - Set the Coursework project as the startup project
 - Make a clean build and run
 
+# Screenshots
 [![CSC8502-Pic3.png](https://i.postimg.cc/90bPrJZH/CSC8502-Pic3.png)](https://postimg.cc/Zv9vQPww)
+[![CSC8502-Pic1.png](https://i.postimg.cc/3w0Znj52/CSC8502-Pic1.png)](https://postimg.cc/QBs5MTMM)
+[![CSC8502-Pic2.png](https://i.postimg.cc/WzT6NQD7/CSC8502-Pic2.png)](https://postimg.cc/FdCJGCVf)
