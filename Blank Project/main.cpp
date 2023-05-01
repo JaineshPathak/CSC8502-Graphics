@@ -4,7 +4,11 @@
 
 int main()	
 {
-	Window w("CSC8502 Coursework - Jainesh Pathak!", 1280, 768, false);
+#if _DEBUG
+	Window w("CSC8502 Coursework - Elden Ring Theme (Jainesh Pathak)", 1280, 768, false);
+#elif _RELEASE
+	Window w("CSC8502 Coursework - Elden Ring Theme (Jainesh Pathak)", 1600, 900, true);
+#endif
 
 	if(!w.HasInitialised()) {
 		return -1;
