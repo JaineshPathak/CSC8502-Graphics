@@ -7,7 +7,7 @@ The framework was provided by Rich Davison.
 
 # How to Run?
 - Go to x64 > Debug > Coursework.exe
-OR
+- OR
 - Make sure in visual studio you are in Debug mode
 - Set the Coursework project as the startup project
 - Make a clean build and run
