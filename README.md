@@ -3,9 +3,11 @@
 A part of CSC8502 Coursework, Newcastle University. NCLGL library framework was provided by the University. The task was to make an Elden Ring style level in OpenGL and C++.
 
 I exported the meshes with animations from Unity to the .msh format accepted by NCLGL library framework.
-The NCLGL framework was provided by Rich Davison.
+The framework was provided by Rich Davison.
 
 # How to Run?
+- Go to x64 > Debug > Coursework.exe
+OR
 - Make sure in visual studio you are in Debug mode
 - Set the Coursework project as the startup project
 - Make a clean build and run
