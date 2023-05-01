@@ -9,9 +9,7 @@ The framework was provided by Rich Davison.
 The main sourse code is inside the "Blank Project" folder (sorry for misleading name). The rest of the folder are tutorials provided by University.
 
 # How to Run?
-- Go to x64 > Debug > Coursework.exe
-OR
-- Make sure in visual studio you are in Debug mode
+- Make sure in visual studio you are in Debug or Release mode
 - Set the Coursework project as the startup project
 - Make a clean build and run
 
