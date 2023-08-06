@@ -1,9 +1,8 @@
 # CSC8502 - Elden Ring Theme
 
-A part of CSC8502 Coursework, Newcastle University. NCLGL library framework was provided by the University. The task was to make an Elden Ring style level in OpenGL and C++.
+The task was to make an fantasy style level in OpenGL and C++. I exported the meshes with animations from Unity to the format accepted by NCLGL library framework.
 
-I exported the meshes with animations from Unity to the .msh format accepted by NCLGL library framework.
-The framework was provided by Rich Davison.
+​The terrain was made in Unity and I exported its heightmap, splatmap and using its heightmap to make the terrain mesh. The splatmap was used for blending different textures with the help of shader.
 
 # Source Code Files to look at
 The main sourse code is inside the "Blank Project" folder (sorry for misleading name). The rest of the folder are tutorials provided by University.
