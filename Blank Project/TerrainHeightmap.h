@@ -1,8 +1,8 @@
 #pragma once
 #include "../nclgl/HeightMap.h"
+#include <memory>
 
 class Shader;
-
 class TerrainHeightmap : public HeightMap
 {
 public:
@@ -14,7 +14,7 @@ public:
 
 	~TerrainHeightmap();
 
-	Shader* GetTerrainShader() { return terrainShader; }
+	Shader* GetTerrainShader() { return terrainShader.get(); }
 	GLuint GetTerrainTextureSplatmap() { return terrainTextureSplatmap; }
 	GLuint GetTerrainTextureGrass() { return terrainTextureGrass; }
 	GLuint GetTerrainTextureRocks() { return terrainTextureRocks; }
@@ -25,7 +25,7 @@ public:
 protected:
 	bool initSuccess = true;
 
-	Shader* terrainShader;
+	std::shared_ptr<Shader> terrainShader;
 	GLuint terrainTextureSplatmap;
 	GLuint terrainTextureGrass;
 	GLuint terrainTextureRocks;

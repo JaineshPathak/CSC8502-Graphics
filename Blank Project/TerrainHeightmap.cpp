@@ -1,7 +1,8 @@
 #include "TerrainHeightmap.h"
 #include <iostream>
 
-#include "../nclgl/Shader.h"
+#include <nclgl/Shader.h>
+#include "AssetManager.h"
 
 TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWidth, float vertexScaleLength, float texturingScale, float extraHeight)
 {
@@ -68,7 +69,8 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	
 	//--------------------------------------------------------------------------
 	// Shader loading
-	terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
+	//terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
+	terrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
 	if (!terrainShader->LoadSuccess())
 	{
 		initSuccess = false;
@@ -78,11 +80,14 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	//--------------------------------------------------------------------------
 	// Textures
 	
-	terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	
+	/*terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
+	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);*/
+	terrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png");
+	terrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png");
+	terrainTextureRocks = AssetManager::Get()->GetTexture("TerrainRocks_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png");
+	terrainTextureGround = AssetManager::Get()->GetTexture("TerrainGround_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png");
 	if (!terrainTextureSplatmap || !terrainTextureGrass || !terrainTextureGround || !terrainTextureRocks)
 	{
 		initSuccess = false;
@@ -100,7 +105,6 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 
 TerrainHeightmap::~TerrainHeightmap()
 {
-	delete terrainShader;
 	glDeleteTextures(1, &terrainTextureSplatmap);
 	glDeleteTextures(1, &terrainTextureGrass);
 	glDeleteTextures(1, &terrainTextureRocks);

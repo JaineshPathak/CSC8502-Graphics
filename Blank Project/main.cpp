@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "SceneRenderer.h"
 #include "../NCLGL/window.h"
 #include "../Third Party/imgui/imgui_internal.h"
 
@@ -14,7 +15,7 @@ int main()
 		return -1;
 	}
 	
-	Renderer renderer(w);
+	SceneRenderer renderer(w);
 	if(!renderer.HasInitialised()) {
 		return -1;
 	}
@@ -38,7 +39,7 @@ int main()
 			w.ShowOSPointer(showPointer);
 		}*/
 
-		if (ImGui::GetIO().MouseClicked[1])
+		if (ImGui::GetCurrentContext() && ImGui::GetIO().MouseClicked[1])
 		{
 			showPointer = !showPointer;
 			ImGui::GetIO().MouseDrawCursor = showPointer;
