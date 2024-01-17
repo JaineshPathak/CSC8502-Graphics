@@ -34,7 +34,7 @@ void TreePropNode::Draw(const OGLRenderer& r)
 		//OGLRenderer::BindTexture(matTextures[i], 0, "diffuseTex", shader);
 		//OGLRenderer::BindTexture(matBumpTextures[i], 1, "bumpTex", shader);
 		shader->SetTexture("diffuseTex", matTextures[i], 0);
-		shader->SetTexture("bumpTex", matTextures[i], 1);
+		shader->SetTexture("bumpTex", matBumpTextures[i], 1);
 
 		mesh->DrawSubMesh(i);
 	}

@@ -641,6 +641,15 @@ void Mesh::GenerateNormals()
 		normals[i].Normalise();
 }
 
+void Mesh::FlipNormals()
+{
+	if (!normals)
+		GenerateNormals();
+
+	for (size_t i = 0; i < numVertices; i++)
+		normals[i] = normals[i] * Vector3(-1.0f, -1.0f, -1.0f);
+}
+
 bool Mesh::GetVertexIndicesForTri(unsigned int i, unsigned int& a, unsigned int& b, unsigned int& c) const
 {
 	unsigned int triCount = GetTriCount();

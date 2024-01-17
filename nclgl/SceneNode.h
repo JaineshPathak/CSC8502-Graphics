@@ -21,6 +21,9 @@ public:
 	Vector4 GetColour() const { return colour; }
 	void SetColor(Vector4 c) { colour = c; }
 
+	Vector3 GetModelPosition() const { return modelPosition; }
+	void SetModelPosition(const Vector3& p) { modelPosition = p; }
+
 	Vector3 GetModelScale() const { return modelScale; }
 	void SetModelScale(const Vector3& s) { modelScale = s; }
 
@@ -68,6 +71,7 @@ protected:
 	Mesh* mesh;
 	Matrix4 localTransform;
 	Matrix4 worldTransform;
+	Vector3 modelPosition;
 	Vector3 modelScale;
 	Vector3 modelRotation;
 	Vector4 colour;

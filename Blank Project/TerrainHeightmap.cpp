@@ -60,6 +60,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 		}
 	}
 	GenerateNormals();
+	FlipNormals();
 	GenerateTangents();
 	BufferData();
 
@@ -70,7 +71,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	//--------------------------------------------------------------------------
 	// Shader loading
 	//terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
-	terrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
+	terrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
 	if (!terrainShader->LoadSuccess())
 	{
 		initSuccess = false;
@@ -84,10 +85,10 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);*/
-	terrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png");
-	terrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png");
-	terrainTextureRocks = AssetManager::Get()->GetTexture("TerrainRocks_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png");
-	terrainTextureGround = AssetManager::Get()->GetTexture("TerrainGround_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png");
+	terrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", false);
+	terrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", false);
+	terrainTextureRocks = AssetManager::Get()->GetTexture("TerrainRocks_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", false);
+	terrainTextureGround = AssetManager::Get()->GetTexture("TerrainGround_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", false);
 	if (!terrainTextureSplatmap || !terrainTextureGrass || !terrainTextureGround || !terrainTextureRocks)
 	{
 		initSuccess = false;

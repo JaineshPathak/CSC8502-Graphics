@@ -18,7 +18,6 @@ uniform float lightDirIntensity;
 uniform int numPointLights;
 uniform vec3 pointLightPos[50];
 uniform vec4 pointLightColour[50];
-uniform vec4 pointLightSpecularColour[50];
 uniform float pointLightRadius[50];
 uniform float pointLightIntensity[50];
 
@@ -49,7 +48,7 @@ in Vertex
 out vec4 fragColour;
 
 vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal);
-vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal);
+vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal);
 
 void main(void)
 {
@@ -82,7 +81,7 @@ void main(void)
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightSpecularColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, bumpNormal, diffuseFinal);
+			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, bumpNormal, diffuseFinal);
 	}
 
 	fragColour = vec4(result, 1.0);
@@ -98,14 +97,19 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal)
 	vec3 albedoColor = diffuseFinal.rgb;
 
 	vec3 V = viewDir;
-	vec3 N = bumpNormal;
+	vec3 N = normalize(bumpNormal);
 	vec3 L = normalize(-lightDir);
-	vec3 H = normalize(L + V);
+	vec3 H = normalize(V + L);
 
-	float NdotL = max(dot(N, L), 0.0001);	
+	float NdotL = max(dot(N, L), 0.0001f);
+	float NdotH = dot(N, H);
+
+	float specFactor = clamp(NdotH, 0.0, 1.0);
+	specFactor = pow(specFactor, 32.0f);
 
 	vec3 ambient = 0.1f * lightDirColour.rgb;
 	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
+	vec3 specular = specFactor * lightDirColour.rgb;
 
 	return (ambient + diffuse) * albedoColor;
 
@@ -147,7 +151,7 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal, vec4 diffuseFinal)
 	return (ambient + diffuseRGB + specular) * lightDirIntensity;*/
 }
 
-vec3 CalcPointLight(vec4 _pointLightColour, vec4 _pointLightSpecularColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal)
+vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal, vec4 _diffuseFinal)
 {
 	vec3 albedoColor = _diffuseFinal.rgb;
 

@@ -106,6 +106,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>nclgl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -165,6 +166,11 @@
     <ClInclude Include="TerrainHeightmap.h" />
     <ClInclude Include="TerrainNode.h" />
     <ClInclude Include="TreePropNode.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Shaders\Coursework\Terrain\CWTerrainFragv2.glsl" />
+    <None Include="..\Shaders\Coursework\Terrain\CWTexturedFragmentv2.glsl" />
+    <None Include="..\Shaders\Coursework\Terrain\CWTexturedSkinFragment.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

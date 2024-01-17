@@ -91,6 +91,7 @@ public:
 	bool GetSubMesh(const std::string& name, const SubMesh* s) const;
 
 	void GenerateNormals();
+	void FlipNormals();
 	bool GetVertexIndicesForTri(unsigned int i, unsigned int& a, unsigned int& b, unsigned int& c) const;
 
 	void GenerateTangents();

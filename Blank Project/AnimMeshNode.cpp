@@ -1,4 +1,5 @@
 #include "AnimMeshNode.h"
+#include "AssetManager.h"
 
 AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, MeshMaterial* mat, const std::string& texPath)
 {
@@ -13,7 +14,8 @@ AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, Mesh
 		const string* fileName = nullptr;
 		matEntry->GetEntry("Diffuse", &fileName);
 		string path = texPath + *fileName;
-		GLuint texID = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+		//GLuint texID = SOIL_load_OGL_texture(path.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+		GLuint texID = AssetManager::Get()->GetTexture(*fileName, path);
 		matTextures.emplace_back(texID);
 
 		const string* bumpFileName = nullptr;
@@ -21,7 +23,8 @@ AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, Mesh
 		if (bumpFileName != nullptr)
 		{
 			string bumpPath = texPath + *bumpFileName;
-			GLuint bumptexID = SOIL_load_OGL_texture(bumpPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+			//GLuint bumptexID = SOIL_load_OGL_texture(bumpPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+			GLuint bumptexID = AssetManager::Get()->GetTexture(*bumpFileName, bumpPath);
 			matBumpTextures.emplace_back(bumptexID);
 		}
 	}
@@ -31,9 +34,6 @@ AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, Mesh
 
 AnimMeshNode::~AnimMeshNode()
 {
-	delete mesh;
-	delete MeshAnim;
-	delete MeshMat;
 }
 
 void AnimMeshNode::Update(float dt)
@@ -50,8 +50,8 @@ void AnimMeshNode::Update(float dt)
 
 void AnimMeshNode::Draw(const OGLRenderer& r)
 {
-	glUniform1i(glGetUniformLocation(shader->GetProgram(), "diffuseTex"), 0);
-	glUniform1i(glGetUniformLocation(shader->GetProgram(), "bumpTex"), 1);
+	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "diffuseTex"), 0);
+	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "bumpTex"), 1);
 	
 	vector <Matrix4> frameMatrices;
 	const Matrix4* invBindPose = mesh->GetInverseBindPose();
@@ -70,14 +70,17 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 		//OGLRenderer::BindTexture(matTextures[i], 0, "diffuseTex", shader);
 		//OGLRenderer::BindTexture(matBumpTextures[i], 1, "bumpTex", shader);
 
-		glActiveTexture(GL_TEXTURE0);
+		/*glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, matTextures[i]);
 
 		if (matBumpTextures.size() > 0)
 		{
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, matBumpTextures[i]);
-		}
+		}*/
+
+		shader->SetTexture("diffuseTex", matTextures[i], 0);
+		shader->SetTexture("bumpTex", matBumpTextures[i], 1);
 
 		mesh->DrawSubMesh(i);
 	}

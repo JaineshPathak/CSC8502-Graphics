@@ -3,6 +3,8 @@
 #include "AssetManager.h"
 #include "FileHandler.h"
 #include "TerrainNode.h"
+#include "TreePropNode.h"
+#include "AnimMeshNode.h"
 
 #include <nclgl/Camera.h>
 #include <nclgl/DirectionalLight.h>
@@ -10,15 +12,23 @@
 #include <algorithm>
 
 const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
-const Vector3 DIRECTIONAL_LIGHT_DIR(1.0f, 0.0f, 0.0f);
+const Vector3 DIRECTIONAL_LIGHT_DIR(0.5f, -1.0f, 0.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
-SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent)
+std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
+
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
+SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManager(*AssetManager::Get())
 {
 	init = Initialize();
 	if (!init) return;
 
-	m_TerrainNode = std::shared_ptr<TerrainNode>(new TerrainNode());
+	if (m_Camera && m_TerrainNode)
+		m_Camera->SetPosition(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 4.5f, 0.5f));
 }
 
 SceneRenderer::~SceneRenderer(void)
@@ -39,13 +49,20 @@ void SceneRenderer::RenderScene()
 void SceneRenderer::UpdateScene(float DeltaTime)
 {
 	if (m_Camera) m_Camera->UpdateCamera(DeltaTime);
+
+	if (m_RootNode)
+		m_RootNode->Update(DeltaTime);
 }
 
 bool SceneRenderer::Initialize()
 {
 	if (!InitCamera()) return false;
+	if (!InitShaders()) return false;
 	if (!InitMeshes()) return false;
+	if (!InitMeshMaterials()) return false;
+	if (!InitMeshAnimations()) return false;
 	if (!InitLights()) return false;
+	if (!InitSceneNodes()) return false;
 	if (!InitGLParameters()) return false;
 
 	return true;
@@ -59,19 +76,52 @@ bool SceneRenderer::InitCamera()
 	return m_Camera != nullptr;
 }
 
+bool SceneRenderer::InitShaders()
+{
+	m_TerrainShader = m_AssetManager.GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
+	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
+	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
+	return m_TerrainShader->LoadSuccess() && m_DiffuseShader->LoadSuccess() && m_DiffuseAnimShader->LoadSuccess();
+}
+
 bool SceneRenderer::InitMeshes()
 {
-	AssetManager::Get()->GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
-	AssetManager::Get()->GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");
-	AssetManager::Get()->GetMesh("CastleMain", MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
-	AssetManager::Get()->GetMesh("CastlePillar", MESHDIRCOURSE"Castle/Mesh_CastlePillar.msh");
-	AssetManager::Get()->GetMesh("CastleArch", MESHDIRCOURSE"Castle/Mesh_CastleArch.msh");
-	AssetManager::Get()->GetMesh("CastleBridge", MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
-	AssetManager::Get()->GetMesh("Ruins", MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
-	AssetManager::Get()->GetMesh("Crystal01", MESHDIRCOURSE"Crystals/Mesh_Crystal_01.msh");
-	AssetManager::Get()->GetMesh("Crystal02", MESHDIRCOURSE"Crystals/Mesh_Crystal_02.msh");
-	AssetManager::Get()->GetMesh("MonsterDude", MESHDIRCOURSE"Monsters/Monster_Dude.msh");
-	AssetManager::Get()->GetMesh("MonsterCrab", MESHDIRCOURSE"Monsters/Monster_Crab.msh");
+	m_AssetManager.GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
+	m_AssetManager.GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");
+	m_AssetManager.GetMesh("CastleMain", MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
+	m_AssetManager.GetMesh("CastlePillar", MESHDIRCOURSE"Castle/Mesh_CastlePillar.msh");
+	m_AssetManager.GetMesh("CastleArch", MESHDIRCOURSE"Castle/Mesh_CastleArch.msh");
+	m_AssetManager.GetMesh("CastleBridge", MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
+	m_AssetManager.GetMesh("Ruins", MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
+	m_AssetManager.GetMesh("Crystal01", MESHDIRCOURSE"Crystals/Mesh_Crystal_01.msh");
+	m_AssetManager.GetMesh("Crystal02", MESHDIRCOURSE"Crystals/Mesh_Crystal_02.msh");
+	m_AssetManager.GetMesh("MonsterDude", MESHDIRCOURSE"Monsters/Monster_Dude.msh");
+	m_AssetManager.GetMesh("MonsterCrab", MESHDIRCOURSE"Monsters/Monster_Crab.msh");
+
+	return true;
+}
+
+bool SceneRenderer::InitMeshMaterials()
+{
+	m_AssetManager.GetMeshMaterial("Rocks01Mat", MESHDIRCOURSE"Rocks/Mesh_Rock5D.mat");
+	m_AssetManager.GetMeshMaterial("Tree01Mat", MESHDIRCOURSE"Trees/Tree_01.mat");
+	m_AssetManager.GetMeshMaterial("CastleMainMat", MESHDIRCOURSE"Castle/Mesh_CastleMain.mat");
+	m_AssetManager.GetMeshMaterial("CastlePillarMat", MESHDIRCOURSE"Castle/Mesh_CastlePillar.mat");
+	m_AssetManager.GetMeshMaterial("CastleArchMat", MESHDIRCOURSE"Castle/Mesh_CastleArch.mat");
+	m_AssetManager.GetMeshMaterial("CastleBridgeMat", MESHDIRCOURSE"Castle/Mesh_Bridge.mat");
+	m_AssetManager.GetMeshMaterial("RuinsMat", MESHDIRCOURSE"Ruins/Mesh_RuinsMain.mat");
+	m_AssetManager.GetMeshMaterial("Crystal01Mat", MESHDIRCOURSE"Crystals/Mesh_Crystal_01.mat");
+	m_AssetManager.GetMeshMaterial("Crystal02Mat", MESHDIRCOURSE"Crystals/Mesh_Crystal_02.mat");
+	m_AssetManager.GetMeshMaterial("MonsterDudeMat", MESHDIRCOURSE"Monsters/Monster_Dude.mat");
+	m_AssetManager.GetMeshMaterial("MonsterCrabMat", MESHDIRCOURSE"Monsters/Monster_Crab.mat");
+
+	return true;
+}
+
+bool SceneRenderer::InitMeshAnimations()
+{
+	m_AssetManager.GetMeshAnimation("MonsterDudeAnim", MESHDIRCOURSE"Monsters/Monster_Dude.anm");
+	m_AssetManager.GetMeshAnimation("MonsterCrabAnim", MESHDIRCOURSE"Monsters/Monster_Crab.anm");
 
 	return true;
 }
@@ -103,6 +153,109 @@ bool SceneRenderer::InitGLParameters()
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	return true;
+}
+
+bool SceneRenderer::InitSceneNodes()
+{
+	//Spawn the Root Nodes
+	m_TerrainNode = std::shared_ptr<TerrainNode>(new TerrainNode());
+	m_RootNode = m_TerrainNode;
+
+	SceneNodeProperties rocksProperties("Rock", ROCK2FILE, m_AssetManager.GetMesh("Rocks01"), m_AssetManager.GetMeshMaterial("Rocks01Mat"), false);
+	rocksProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties treesProperties("Tree", TREESFILE, m_AssetManager.GetMesh("Tree01"), m_AssetManager.GetMeshMaterial("Tree01Mat"), true);
+	treesProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties castleProperties("Castle", CASTLEFILE, m_AssetManager.GetMesh("CastleMain"), m_AssetManager.GetMeshMaterial("CastleMainMat"), false);
+	castleProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties castlePillarProperties("CastlePillar", CASTLEPILLARFILE, m_AssetManager.GetMesh("CastlePillar"), m_AssetManager.GetMeshMaterial("CastlePillarMat"), false);
+	castlePillarProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties castleArchProperties("CastleArch", CASTLEARCHFILE, m_AssetManager.GetMesh("CastleArch"), m_AssetManager.GetMeshMaterial("CastleArchMat"), false);
+	castleArchProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties castleBridgeProperties("CastleBridge", CASTLEBRIDGEFILE, m_AssetManager.GetMesh("CastleBridge"), m_AssetManager.GetMeshMaterial("CastleBridgeMat"), false);
+	castleBridgeProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties ruinsProperties("Ruins", RUINSFILE, m_AssetManager.GetMesh("Ruins"), m_AssetManager.GetMeshMaterial("RuinsMat"), false);
+	ruinsProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties crystalAProperties("CrystalA", CRYSTAL01FILE, m_AssetManager.GetMesh("Crystal01"), m_AssetManager.GetMeshMaterial("Crystal01Mat"), false);
+	crystalAProperties.nodeParent = m_RootNode;
+
+	SceneNodeProperties crystalBProperties("CrystalB", CRYSTAL02FILE, m_AssetManager.GetMesh("Crystal02"), m_AssetManager.GetMeshMaterial("Crystal02Mat"), false);
+	crystalBProperties.nodeParent = m_RootNode;
+
+	SpawnSceneNode(rocksProperties);
+	SpawnSceneNode(treesProperties);
+	SpawnSceneNode(castleProperties);
+	SpawnSceneNode(castlePillarProperties);
+	SpawnSceneNode(castleArchProperties);
+	SpawnSceneNode(castleBridgeProperties);
+	SpawnSceneNode(ruinsProperties);
+	SpawnSceneNode(crystalAProperties);
+	SpawnSceneNode(crystalBProperties);
+
+	AnimSceneNodeProperties monsterDudeProp("MonsterDude", MONSTERDUDEFILE, m_AssetManager.GetMesh("MonsterDude"), m_AssetManager.GetMeshMaterial("MonsterDudeMat"), m_AssetManager.GetMeshAnimation("MonsterDudeAnim"), false);
+	monsterDudeProp.nodeParent = m_RootNode;
+
+	AnimSceneNodeProperties monsterCrabProp("MonsterCrab", MONSTERCRABFILE, m_AssetManager.GetMesh("MonsterCrab"), m_AssetManager.GetMeshMaterial("MonsterCrabMat"), m_AssetManager.GetMeshAnimation("MonsterCrabAnim"), false);
+	monsterCrabProp.nodeParent = m_RootNode;
+
+	SpawnSceneNode(monsterDudeProp);
+	SpawnSceneNode(monsterCrabProp);
+
+	return true;
+}
+
+void SceneRenderer::SpawnSceneNode(const SceneNodeProperties& nodeProp)
+{
+	if (!FileHandler::FileExists(nodeProp.nodeFilePath)) return;
+
+	std::vector<Vector3> posV, rotV, scaleV;
+	FileHandler::ReadPropDataFromFile(nodeProp.nodeFilePath, posV, rotV, scaleV);
+
+	for (int i = 0; i < posV.size(); i++)
+	{
+		TreePropNode* newNode = new TreePropNode(nodeProp.nodeMesh.get(), nodeProp.nodeMeshMaterial.get(), m_DiffuseShader.get(), TEXTUREDIR);
+		newNode->nodeName = nodeProp.nodeName + std::to_string(i);
+		newNode->SetModelPosition(posV[i]);
+		newNode->SetModelRotation(rotV[i]);
+		newNode->SetModelScale(scaleV[i]);
+		newNode->SetTransform(Matrix4::Translation(newNode->GetModelPosition()) * newNode->GetRotationMatrix() * Matrix4::Scale(newNode->GetModelScale()));
+		
+		if (nodeProp.isTransparent)
+			newNode->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
+
+		if(nodeProp.nodeParent != nullptr)
+			nodeProp.nodeParent->AddChild(newNode);
+	}
+}
+
+void SceneRenderer::SpawnSceneNode(const AnimSceneNodeProperties& nodeProp)
+{
+	if (!FileHandler::FileExists(nodeProp.nodeFilePath)) return;
+
+	std::vector<Vector3> posV, rotV, scaleV;
+	FileHandler::ReadPropDataFromFile(nodeProp.nodeFilePath, posV, rotV, scaleV);
+
+	for (int i = 0; i < posV.size(); i++)
+	{
+		AnimMeshNode* newNode = new AnimMeshNode(m_DiffuseAnimShader.get(), nodeProp.nodeMesh.get(), nodeProp.nodeMeshAnimation.get(), nodeProp.nodeMeshMaterial.get(), TEXTUREDIR);
+		newNode->nodeName = nodeProp.nodeName + std::to_string(i);
+		newNode->SetModelPosition(posV[i]);
+		newNode->SetModelRotation(rotV[i]);
+		newNode->SetModelScale(scaleV[i]);
+		newNode->SetTransform(Matrix4::Translation(newNode->GetModelPosition()) * newNode->GetRotationMatrix() * Matrix4::Scale(newNode->GetModelScale()));
+
+		if (nodeProp.isTransparent)
+			newNode->SetColor(Vector4(1.0f, 1.0f, 1.0f, 0.5f));
+
+		if (nodeProp.nodeParent != nullptr)
+			nodeProp.nodeParent->AddChild(newNode);
+	}
 }
 
 void SceneRenderer::DrawAllNodes()
@@ -149,24 +302,24 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 {
 	if (Node->GetMesh())
 	{
-		Shader& nodeShader = *Node->GetShader();
+		Shader* nodeShader = Node->GetShader();
 
-		nodeShader.Bind();
+		nodeShader->Bind();
 
 		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
 		viewMatrix = m_Camera->BuildViewMatrix();
 		projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width / (float)height, 60.0f);
 
-		nodeShader.SetVector3("cameraPos", m_Camera->getPosition());
-		nodeShader.SetMat4("modelMatrix", modelMatrix);
-		nodeShader.SetMat4("viewMatrix", viewMatrix);
-		nodeShader.SetMat4("projMatrix", projMatrix);
+		nodeShader->SetVector3("cameraPos", m_Camera->getPosition());
+		nodeShader->SetMat4("modelMatrix", modelMatrix);
+		nodeShader->SetMat4("viewMatrix", viewMatrix);
+		nodeShader->SetMat4("projMatrix", projMatrix);
 
-		nodeShader.SetVector3("lightDir", DIRECTIONAL_LIGHT_DIR);
-		nodeShader.SetVector4("lightDirColour", DIRECTIONAL_LIGHT_COLOUR);
-		nodeShader.SetFloat("lightDirIntensity", 1.0f);
+		nodeShader->SetVector3("lightDir", DIRECTIONAL_LIGHT_DIR);
+		nodeShader->SetVector4("lightDirColour", DIRECTIONAL_LIGHT_COLOUR);
+		nodeShader->SetFloat("lightDirIntensity", 1.0f);
 
-		nodeShader.SetInt("numPointLights", m_PointLightsNum);
+		nodeShader->SetInt("numPointLights", m_PointLightsNum);
 		if (m_PointLightsNum > 0)
 		{
 			for (size_t i = 0; i < m_PointLightsList.size(); i++)
@@ -175,28 +328,21 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 
 				std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
 				std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
-				std::string lightSpecularColourName = "pointLightSpecularColour[" + std::to_string(i) + "]";
 				std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
 				std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
 				
-				nodeShader.SetVector3(lightPosName, pointLight.GetPosition());
-				nodeShader.SetVector4(lightColorName, pointLight.GetColour());
-				nodeShader.SetVector4(lightSpecularColourName, pointLight.GetSpecularColour());
-				nodeShader.SetFloat(lightRadiusName, pointLight.GetRadius());
-				nodeShader.SetFloat(lightIntensityName, pointLight.GetIntensity());
+				nodeShader->SetVector3(lightPosName, pointLight.GetPosition());
+				nodeShader->SetVector4(lightColorName, pointLight.GetColour());
+				nodeShader->SetFloat(lightRadiusName, pointLight.GetRadius());
+				nodeShader->SetFloat(lightIntensityName, pointLight.GetIntensity());
 			}
 		}
 
-		nodeShader.SetInt("enableFog", false);
-		nodeShader.SetVector4("fogColour", FOG_COLOUR);
-
-		/*glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "shadowTex"), 4);
-		glActiveTexture(GL_TEXTURE4);
-		glBindTexture(GL_TEXTURE_2D, shadowTex);*/
+		nodeShader->SetInt("enableFog", true);
+		nodeShader->SetVector4("fogColour", FOG_COLOUR);
 
 		Node->Draw(*this);
 
-		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "modelMatrix"), 1, false, model.values);
-		nodeShader.UnBind();
+		nodeShader->UnBind();
 	}
 }

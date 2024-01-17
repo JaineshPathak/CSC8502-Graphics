@@ -5,8 +5,9 @@ SceneNode::SceneNode(Mesh* m, Vector4 col)
 	mesh = m;
 	colour = col;
 	parent = NULL;
-	modelScale = Vector3(1, 1, 1);
+	modelPosition = Vector3(0, 0, 0);
 	modelRotation = Vector3(0, 0, 0);
+	modelScale = Vector3(1, 1, 1);
 
 	boundingRadius = 1.0f;
 	distanceFromCamera = 0.0f;
@@ -19,8 +20,9 @@ SceneNode::SceneNode(const std::string& name)
 	mesh = nullptr;
 	colour = Vector4(1, 1, 1, 1);
 	parent = NULL;
-	modelScale = Vector3(1, 1, 1);
+	modelPosition = Vector3(0, 0, 0);
 	modelRotation = Vector3(0, 0, 0);
+	modelScale = Vector3(1, 1, 1);
 
 	boundingRadius = 1.0f;
 	distanceFromCamera = 0.0f;
