@@ -3,21 +3,16 @@
 TerrainNode::TerrainNode()
 {
 	nodeName = "TerrainMain";
-	terrainHMap = new TerrainHeightmap(TEXTUREDIRCOURSETERRAIN"Terrain_heightmap4.png", 32.0f, 32.0f, 16.0f, 16.0f);
-	shader = terrainHMap->GetTerrainShader();
-}
-
-TerrainNode::~TerrainNode()
-{
-	delete terrainHMap;
+	m_TerrainHMap = std::shared_ptr<TerrainHeightmap>(new TerrainHeightmap(TEXTUREDIRCOURSETERRAIN"Terrain_heightmap4.png", 32.0f, 32.0f, 16.0f, 16.0f));
+	shader = m_TerrainHMap->GetTerrainShader();
 }
 
 void TerrainNode::Draw(const OGLRenderer& r)
 {
-	OGLRenderer::BindTexture(terrainHMap->GetTerrainTextureSplatmap(), 0, "diffuseSplatmapTex", shader);
-	OGLRenderer::BindTexture(terrainHMap->GetTerrainTextureGrass(), 1, "diffuseGrassTex", shader);
-	OGLRenderer::BindTexture(terrainHMap->GetTerrainTextureRocks(), 2, "diffuseRocksTex", shader);
-	OGLRenderer::BindTexture(terrainHMap->GetTerrainTextureGround(), 3, "diffuseGroundTex", shader);
+	shader->SetTexture("diffuseSplatmapTex", m_TerrainHMap->GetTerrainTextureSplatmap(), 1);
+	shader->SetTexture("diffuseGrassTex", m_TerrainHMap->GetTerrainTextureGrass(), 2);
+	shader->SetTexture("diffuseRocksTex", m_TerrainHMap->GetTerrainTextureRocks(), 3);
+	shader->SetTexture("diffuseGroundTex", m_TerrainHMap->GetTerrainTextureGround(), 4);
 
-	terrainHMap->Draw();
+	m_TerrainHMap->Draw();
 }

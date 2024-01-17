@@ -1,19 +1,20 @@
 #pragma once
 #include "../nclgl/SceneNode.h"
 #include "TerrainHeightmap.h"
+#include <memory>
 
 class TerrainNode : public SceneNode
 {
 public:
 	TerrainNode();
-	~TerrainNode();
+	~TerrainNode() {};
 
-	Vector3 GetHeightmapSize() { return terrainHMap->GetHeightMapSize(); }
-	Shader* GetTerrainShader() { return terrainHMap->GetTerrainShader(); }
+	Vector3 GetHeightmapSize() { return m_TerrainHMap->GetHeightMapSize(); }
+	Shader* GetTerrainShader() { return m_TerrainHMap->GetTerrainShader(); }
 
-	virtual Mesh* GetMesh() const override { return terrainHMap; }
+	virtual Mesh* GetMesh() const override { return m_TerrainHMap.get(); }
 	virtual void Draw(const OGLRenderer& r) override;
 
 protected:
-	TerrainHeightmap* terrainHMap;
+	std::shared_ptr<TerrainHeightmap> m_TerrainHMap;
 };

@@ -5,6 +5,7 @@
 class Camera;
 class TerrainNode;
 class SceneNode;
+class DirectionalLight;
 
 class SceneRenderer : public OGLRenderer
 {
@@ -19,6 +20,8 @@ protected:
 	bool Initialize();
 
 	bool InitCamera();
+	bool InitMeshes();
+	bool InitLights();
 	bool InitGLParameters();
 
 	void DrawAllNodes();
@@ -28,14 +31,17 @@ protected:
 
 	void DrawNode(SceneNode* Node);
 
-private:	
-	//Basic Meshes
+private:
 	std::shared_ptr<Mesh> m_CubeMesh;
 	std::shared_ptr<Mesh> m_QuadMesh;
 
 	std::shared_ptr<Camera> m_Camera;
 
 	std::shared_ptr<TerrainNode> m_TerrainNode;
+
+	std::shared_ptr<DirectionalLight> m_DirLight;
+	std::vector<Light> m_PointLightsList;
+	int m_PointLightsNum;
 
 	std::vector<SceneNode*> m_OpaqueNodesList;
 	std::vector<SceneNode*> m_TransparentNodesList;

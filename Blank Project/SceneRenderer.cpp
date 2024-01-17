@@ -1,19 +1,24 @@
 #include "SceneRenderer.h"
+
 #include "AssetManager.h"
+#include "FileHandler.h"
 #include "TerrainNode.h"
-#include <algorithm>
 
 #include <nclgl/Camera.h>
+#include <nclgl/DirectionalLight.h>
+
+#include <algorithm>
+
+const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
+const Vector3 DIRECTIONAL_LIGHT_DIR(1.0f, 0.0f, 0.0f);
+const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
 SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent)
 {
 	init = Initialize();
 	if (!init) return;
 
-	m_CubeMesh = std::shared_ptr<Mesh>(Mesh::GenerateCube());
 	m_TerrainNode = std::shared_ptr<TerrainNode>(new TerrainNode());
-
-	InitGLParameters();
 }
 
 SceneRenderer::~SceneRenderer(void)
@@ -39,6 +44,8 @@ void SceneRenderer::UpdateScene(float DeltaTime)
 bool SceneRenderer::Initialize()
 {
 	if (!InitCamera()) return false;
+	if (!InitMeshes()) return false;
+	if (!InitLights()) return false;
 	if (!InitGLParameters()) return false;
 
 	return true;
@@ -52,15 +59,48 @@ bool SceneRenderer::InitCamera()
 	return m_Camera != nullptr;
 }
 
+bool SceneRenderer::InitMeshes()
+{
+	AssetManager::Get()->GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
+	AssetManager::Get()->GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");
+	AssetManager::Get()->GetMesh("CastleMain", MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
+	AssetManager::Get()->GetMesh("CastlePillar", MESHDIRCOURSE"Castle/Mesh_CastlePillar.msh");
+	AssetManager::Get()->GetMesh("CastleArch", MESHDIRCOURSE"Castle/Mesh_CastleArch.msh");
+	AssetManager::Get()->GetMesh("CastleBridge", MESHDIRCOURSE"Castle/Mesh_Bridge.msh");
+	AssetManager::Get()->GetMesh("Ruins", MESHDIRCOURSE"Ruins/Mesh_RuinsMain.msh");
+	AssetManager::Get()->GetMesh("Crystal01", MESHDIRCOURSE"Crystals/Mesh_Crystal_01.msh");
+	AssetManager::Get()->GetMesh("Crystal02", MESHDIRCOURSE"Crystals/Mesh_Crystal_02.msh");
+	AssetManager::Get()->GetMesh("MonsterDude", MESHDIRCOURSE"Monsters/Monster_Dude.msh");
+	AssetManager::Get()->GetMesh("MonsterCrab", MESHDIRCOURSE"Monsters/Monster_Crab.msh");
+
+	return true;
+}
+
+bool SceneRenderer::InitLights()
+{
+	m_DirLight = std::shared_ptr<DirectionalLight>(new DirectionalLight(DIRECTIONAL_LIGHT_DIR, DIRECTIONAL_LIGHT_COLOUR, Vector4()));
+	if (m_DirLight == nullptr) return false;
+
+	if (FileHandler::FileExists(LIGHTSDATAFILE))
+	{
+		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *m_DirLight, m_PointLightsList);		
+		m_PointLightsNum = (int)m_PointLightsList.size();
+	}
+
+	return true;
+}
+
 bool SceneRenderer::InitGLParameters()
 {
+	glEnable(GL_DEPTH_TEST);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
 
 	return true;
 }
@@ -76,6 +116,7 @@ void SceneRenderer::DrawAllNodes()
 
 void SceneRenderer::BuildNodeLists(SceneNode* fromNode)
 {
+	if (fromNode == nullptr) return;
 	if (m_Camera == nullptr) return;
 
 	Vector3 dir = fromNode->GetWorldTransform().GetPositionVector() - m_Camera->getPosition();
@@ -108,42 +149,46 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 {
 	if (Node->GetMesh())
 	{
-		BindShader(Node->GetShader());
-		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
+		Shader& nodeShader = *Node->GetShader();
 
+		nodeShader.Bind();
+
+		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
 		viewMatrix = m_Camera->BuildViewMatrix();
 		projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width / (float)height, 60.0f);
 
-		UpdateShaderMatrices();
+		nodeShader.SetVector3("cameraPos", m_Camera->getPosition());
+		nodeShader.SetMat4("modelMatrix", modelMatrix);
+		nodeShader.SetMat4("viewMatrix", viewMatrix);
+		nodeShader.SetMat4("projMatrix", projMatrix);
 
-		glUniform3fv(glGetUniformLocation(Node->GetShader()->GetProgram(), "cameraPos"), 1, (float*)&m_Camera->getPosition());
+		nodeShader.SetVector3("lightDir", DIRECTIONAL_LIGHT_DIR);
+		nodeShader.SetVector4("lightDirColour", DIRECTIONAL_LIGHT_COLOUR);
+		nodeShader.SetFloat("lightDirIntensity", 1.0f);
 
-		/*glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDir"), 1, (float*)&dirLight->GetLightDir());
-		glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirColour"), 1, (float*)&dirLight->GetColour());
-		glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), "lightDirIntensity"), dirLight->GetIntensity());*/
-
-		//glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "enableFog"), enableFog);
-		//glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "fogColour"), 1, (float*)&fogColour);
-
-		//SetShaderLight(allPointLights[numPointLights - 1]);		//Sun
-
-		//glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "numPointLights"), numPointLights);
-		/*for (size_t i = 0; i < allPointLights.size() && (numPointLights > 0); i++)
+		nodeShader.SetInt("numPointLights", m_PointLightsNum);
+		if (m_PointLightsNum > 0)
 		{
-			Light& l = allPointLights[i];
+			for (size_t i = 0; i < m_PointLightsList.size(); i++)
+			{
+				Light& pointLight = m_PointLightsList[i];
 
-			std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
-			std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
-			std::string lightSpecularColourName = "pointLightSpecularColour[" + std::to_string(i) + "]";
-			std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
-			std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
+				std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
+				std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
+				std::string lightSpecularColourName = "pointLightSpecularColour[" + std::to_string(i) + "]";
+				std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
+				std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
+				
+				nodeShader.SetVector3(lightPosName, pointLight.GetPosition());
+				nodeShader.SetVector4(lightColorName, pointLight.GetColour());
+				nodeShader.SetVector4(lightSpecularColourName, pointLight.GetSpecularColour());
+				nodeShader.SetFloat(lightRadiusName, pointLight.GetRadius());
+				nodeShader.SetFloat(lightIntensityName, pointLight.GetIntensity());
+			}
+		}
 
-			glUniform3fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightPosName.c_str()), 1, (float*)&l.GetPosition());
-			glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightColorName.c_str()), 1, (float*)&l.GetColour());
-			glUniform4fv(glGetUniformLocation(n->GetShader()->GetProgram(), lightSpecularColourName.c_str()), 1, (float*)&l.GetSpecularColour());
-			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightRadiusName.c_str()), l.GetRadius());
-			glUniform1f(glGetUniformLocation(n->GetShader()->GetProgram(), lightIntensityName.c_str()), l.GetIntensity());
-		}*/
+		nodeShader.SetInt("enableFog", false);
+		nodeShader.SetVector4("fogColour", FOG_COLOUR);
 
 		/*glUniform1i(glGetUniformLocation(n->GetShader()->GetProgram(), "shadowTex"), 4);
 		glActiveTexture(GL_TEXTURE4);
@@ -152,5 +197,6 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 		Node->Draw(*this);
 
 		//glUniformMatrix4fv(glGetUniformLocation(n->GetShader()->GetProgram(), "modelMatrix"), 1, false, model.values);
+		nodeShader.UnBind();
 	}
 }
