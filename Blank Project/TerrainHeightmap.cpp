@@ -60,7 +60,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 		}
 	}
 	GenerateNormals();
-	FlipNormals();
+	//FlipNormals();
 	GenerateTangents();
 	BufferData();
 

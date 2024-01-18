@@ -10,6 +10,7 @@ class TreePropNode;
 class MeshMaterial;
 class MeshAnimation;
 class DirectionalLight;
+class Skybox;
 
 struct SceneNodeProperties
 {
@@ -49,6 +50,8 @@ public:
 	SceneRenderer(Window& parent);
 	~SceneRenderer(void);
 
+	static SceneRenderer* Get() { return m_Instance; }
+
 	virtual void RenderScene() override;
 	virtual void UpdateScene(float DeltaTime) override;
 
@@ -61,12 +64,13 @@ protected:
 	bool InitMeshMaterials();
 	bool InitMeshAnimations();
 	bool InitLights();
+	bool InitSkybox();
 	bool InitGLParameters();
 	bool InitSceneNodes();
 
 	void SpawnSceneNode(const SceneNodeProperties& nodeProp);
 	void SpawnSceneNode(const AnimSceneNodeProperties& nodeProp);
-
+	
 	void DrawAllNodes();
 	void BuildNodeLists(SceneNode* fromNode);
 	void SortNodeLists();
@@ -75,6 +79,7 @@ protected:
 	void DrawNode(SceneNode* Node);
 
 private:
+	static SceneRenderer* m_Instance;
 	AssetManager& m_AssetManager;
 
 	std::shared_ptr<Mesh> m_CubeMesh;
@@ -89,14 +94,19 @@ private:
 	std::vector<Light> m_PointLightsList;
 	int m_PointLightsNum;
 
+	std::shared_ptr<Skybox> m_Skybox;
+
 	std::vector<SceneNode*> m_OpaqueNodesList;
 	std::vector<SceneNode*> m_TransparentNodesList;
 
 	std::shared_ptr<Shader> m_TerrainShader;
 	std::shared_ptr<Shader> m_DiffuseShader;
 	std::shared_ptr<Shader> m_DiffuseAnimShader;
+	std::shared_ptr<Shader> m_SkyboxShader;
 
 public:
 	inline std::shared_ptr<SceneNode> GetRootNode() const { return m_RootNode; }
 	inline std::shared_ptr<Camera> GetCamera() const { return m_Camera; }
+
+	inline std::shared_ptr<Mesh> GetQuadMesh() const { return m_QuadMesh; }	
 };

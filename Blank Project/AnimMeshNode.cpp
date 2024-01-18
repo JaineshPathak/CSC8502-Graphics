@@ -80,18 +80,16 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 		}*/
 
 		shader->SetTexture("diffuseTex", matTextures[i], 0);
-		shader->SetTexture("bumpTex", matBumpTextures[i], 1);
+
+		if (matBumpTextures.size() > 0)
+		{
+			if (matBumpTextures[i] != -1)
+			{
+				shader->SetBool("hasBumpTex", true);
+				shader->SetTexture("bumpTex", matBumpTextures[i], 1);
+			}
+		}
 
 		mesh->DrawSubMesh(i);
 	}
 }
-
-//void AnimMeshNode::AnimateMesh()
-//{
-//	
-//}
-//
-//void AnimMeshNode::DrawMaterial()
-//{
-//	
-//}

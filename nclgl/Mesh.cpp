@@ -631,6 +631,7 @@ void Mesh::GenerateNormals()
 		GetVertexIndicesForTri(i, a, b, c);
 
 		Vector3 normal = Vector3::Cross((vertices[b] - vertices[a]), (vertices[c] - vertices[a]));
+		//Vector3 normal = Vector3::Cross((vertices[c] - vertices[a]), (vertices[b] - vertices[a]));
 
 		normals[a] += normal;
 		normals[b] += normal;

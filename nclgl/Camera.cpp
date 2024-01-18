@@ -62,9 +62,16 @@ void Camera::UpdateCamera(float dt)
 		camPosition.y -= speed;*/
 }
 
+void Camera::SetProjMatrix(const float& znear, const float& zfar, const float& width, const float& height, const float& fov)
+{
+	const float aspect = width / height;
+	camProjMat = Matrix4::Perspective(znear, zfar, aspect, fov);
+}
+
 Matrix4 Camera::BuildViewMatrix()
 {
-	return Matrix4::Rotation(-camRotation.x, Vector3(1, 0, 0)) * Matrix4::Rotation(-camRotation.y, Vector3(0, 1, 0)) * Matrix4::Translation(-camPosition);
+	camViewMat = Matrix4::Rotation(-camRotation.x, Vector3(1, 0, 0)) * Matrix4::Rotation(-camRotation.y, Vector3(0, 1, 0)) * Matrix4::Translation(-camPosition);
+	return camViewMat;
 	//return Matrix4::Rotation(-camRotation.x, Vector3(1, 0, 0)) * Matrix4::Rotation(-camRotation.y, Vector3(0, 1, 0)) * camViewMat;
 	//return camViewMat;
 }

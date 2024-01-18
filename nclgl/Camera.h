@@ -46,11 +46,16 @@ public:
 
 	~Camera(void) {}
 
+	void UpdateCamera(float dt = 1.0f);
+
 	float getDefaultSpeed() const { return defaultSpeed; }
 	inline void SetDefaultSpeed(float s) { defaultSpeed = s; }
+	
+	void SetProjMatrix(const float& znear, const float& zfar, const float& width, const float& height, const float& fov = 60.0f);
+	Matrix4 GetProjMatrix() const { return camProjMat; }
 
-	void UpdateCamera(float dt = 1.0f);
 	Matrix4 BuildViewMatrix();
+	Matrix4 GetViewMatrix() const { return camViewMat; }
 
 	Vector3 getPosition() const { return camPosition; }
 	void SetPosition(const Vector3& val) { camPosition = val; }
@@ -81,5 +86,6 @@ protected:
 	Vector3 camUp;
 	Vector3 camRight;
 
+	Matrix4 camProjMat;
 	Matrix4 camViewMat;
 };

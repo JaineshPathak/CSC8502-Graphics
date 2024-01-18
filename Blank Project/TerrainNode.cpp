@@ -9,6 +9,7 @@ TerrainNode::TerrainNode()
 
 void TerrainNode::Draw(const OGLRenderer& r)
 {
+	shader->SetBool("hasBumpTex", false);
 	shader->SetTexture("diffuseSplatmapTex", m_TerrainHMap->GetTerrainTextureSplatmap(), 1);
 	shader->SetTexture("diffuseGrassTex", m_TerrainHMap->GetTerrainTextureGrass(), 2);
 	shader->SetTexture("diffuseRocksTex", m_TerrainHMap->GetTerrainTextureRocks(), 3);

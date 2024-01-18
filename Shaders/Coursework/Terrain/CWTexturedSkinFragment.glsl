@@ -1,5 +1,6 @@
 #version 330 core
 
+uniform bool hasBumpTex = true;
 uniform sampler2D diffuseTex;
 uniform sampler2D bumpTex;
 uniform sampler2D shadowTex;
@@ -45,8 +46,8 @@ in Vertex
 
 out vec4 fragColour;
 
-vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal);
-vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal);
+vec3 CalcDirLight(vec3 viewDir, vec3 normal);
+vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _normal);
 
 void main(void)
 {
@@ -55,20 +56,22 @@ void main(void)
 	float diffuseAlpha = texture(diffuseTex, IN.texCoord).a;
 	vec3 viewDir = normalize(cameraPos - IN.worldPos);
 
-	vec3 bumpNormal = texture(bumpTex, IN.texCoord).xyz;
-	bumpNormal = bumpNormal * 2.0 - 1.0;
-	bumpNormal.xy *= 1.0;
-	bumpNormal = normalize(bumpNormal);
-
 	mat3 TBN = mat3(normalize(IN.tangent), normalize(IN.binormal), normalize(IN.normal));
-	bumpNormal = normalize(TBN * normalize(bumpNormal));
+	vec3 normal = IN.normal;
+	if(hasBumpTex)
+	{
+		normal = texture(bumpTex, IN.texCoord ).xyz;
+		normal = normal * 2.0 - 1.0;
+		normal.xy *= 1.0;
+	}
+	normal = normalize(TBN * normalize(normal));
 
 	vec3 result = vec3(0.0);
-	result += CalcDirLight(viewDir, bumpNormal);
+	result += CalcDirLight(viewDir, normal);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, bumpNormal);
+			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, normal);
 	}
 
 	fragColour = vec4(result, diffuseAlpha);
@@ -79,12 +82,12 @@ void main(void)
 	//fragColour = vec4(1.0);
 }
 
-vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
+vec3 CalcDirLight(vec3 viewDir, vec3 normal)
 {
 	vec3 albedoColor = texture(diffuseTex, IN.texCoord).rgb;
 
 	vec3 V = viewDir;
-	vec3 N = normalize(bumpNormal);
+	vec3 N = normalize(normal);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(V + L);
 
@@ -95,7 +98,7 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	specFactor = pow(specFactor, 32.0f);
 
 	vec3 ambient = 0.1f * lightDirColour.rgb;
-	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
+	vec3 diffuse = NdotL * lightDirIntensity * lightDirColour.rgb;
 	vec3 specular = specFactor * lightDirColour.rgb;
 
 	return (ambient + diffuse + specular) * albedoColor;
@@ -103,10 +106,10 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	/*vec3 incident = normalize(lightDir);
 	vec3 halfDir = normalize(incident + viewDir);	
 
-	float lambert = max(dot(incident, bumpNormal), 0.0);
+	float lambert = max(dot(incident, normal), 0.0);
 	float attenuation = 1.0f;
 
-	float specFactor = clamp(dot(halfDir, bumpNormal), 0.0, 1.0);
+	float specFactor = clamp(dot(halfDir, normal), 0.0, 1.0);
 	specFactor = pow(specFactor, 60.0f);
 
 	vec3 ambient = 0.3f * texture(diffuseTex, IN.texCoord).rgb;
@@ -137,15 +140,16 @@ vec3 CalcDirLight(vec3 viewDir, vec3 bumpNormal)
 	return ((ambient + diffuseRGB + specular) * lightDirIntensity);*/
 }
 
-vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _bumpNormal)
+vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _normal)
 {
 	vec3 albedoColor = texture(diffuseTex, IN.texCoord).rgb;
 
 	vec3 V = _viewDir;
-	vec3 N = normalize(_bumpNormal);
+	vec3 N = normalize(_normal);
 	vec3 L = normalize(_pointLightPos - IN.worldPos);
 	vec3 H = normalize(V + L);
 
+	float NdotL = max(dot(N, L), 0.0);
 	float NdotH = dot(N, H);
 	float Dist = length(_pointLightPos - IN.worldPos);
 	float Atten = 1.0 - clamp((Dist / _pointLightRadius), 0.0, 1.0);
@@ -154,7 +158,7 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLig
 	specFactor = pow(specFactor, 32.0f);
 
 	vec3 ambient = 0.1f * _pointLightColour.rgb;
-	vec3 diffuse = _pointLightIntensity * _pointLightColour.rgb;
+	vec3 diffuse = NdotL * _pointLightIntensity * _pointLightColour.rgb;
 	vec3 specular = specFactor * _pointLightColour.rgb;
 
 	ambient *= Atten;
@@ -166,11 +170,11 @@ vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLig
 	/*vec3 incident = normalize(_pointLightPos - IN.worldPos);
 	vec3 halfDir = normalize(incident + _viewDir);
 
-	float lambert = max(dot(incident, _bumpNormal), 0.0);
+	float lambert = max(dot(incident, _normal), 0.0);
 	float distance = length(_pointLightPos - IN.worldPos);
 	float attenuation = 1.0 - clamp( (distance / _pointLightRadius), 0.0, 1.0);
 
-	float specFactor = clamp(dot(halfDir, _bumpNormal), 0.0, 1.0);
+	float specFactor = clamp(dot(halfDir, _normal), 0.0, 1.0);
 	specFactor = pow(specFactor, 60.0f);
 
 	vec3 ambient = 0.1f * texture(diffuseTex, IN.texCoord).rgb;

@@ -19,11 +19,14 @@ TreePropNode::TreePropNode(Mesh* m, MeshMaterial* treeMat, Shader* s, const std:
 
 		const string* bumpFileName = nullptr;
 		matEntry->GetEntry("Bump", &bumpFileName);
-		string bumpPath = texPath + *bumpFileName;
-		//GLuint bumptexID = SOIL_load_OGL_texture(bumpPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
-		GLuint bumptexID = AssetManager::Get()->GetTexture(*bumpFileName, bumpPath);
-		OGLRenderer::SetTextureRepeating(bumptexID, true);
-		matBumpTextures.emplace_back(bumptexID);
+		if (bumpFileName != nullptr)
+		{
+			string bumpPath = texPath + *bumpFileName;
+			//GLuint bumptexID = SOIL_load_OGL_texture(bumpPath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y);
+			GLuint bumptexID = AssetManager::Get()->GetTexture(*bumpFileName, bumpPath);
+			OGLRenderer::SetTextureRepeating(bumptexID, true);
+			matBumpTextures.emplace_back(bumptexID);
+		}
 	}
 }
 
@@ -34,7 +37,15 @@ void TreePropNode::Draw(const OGLRenderer& r)
 		//OGLRenderer::BindTexture(matTextures[i], 0, "diffuseTex", shader);
 		//OGLRenderer::BindTexture(matBumpTextures[i], 1, "bumpTex", shader);
 		shader->SetTexture("diffuseTex", matTextures[i], 0);
-		shader->SetTexture("bumpTex", matBumpTextures[i], 1);
+		
+		if (matBumpTextures.size() > 0)
+		{
+			if (matBumpTextures[i] != -1)
+			{
+				shader->SetBool("hasBumpTex", true);
+				shader->SetTexture("bumpTex", matBumpTextures[i], 1);
+			}
+		}
 
 		mesh->DrawSubMesh(i);
 	}

@@ -5,6 +5,7 @@
 #include "TerrainNode.h"
 #include "TreePropNode.h"
 #include "AnimMeshNode.h"
+#include "Skybox.h"
 
 #include <nclgl/Camera.h>
 #include <nclgl/DirectionalLight.h>
@@ -16,6 +17,7 @@ const Vector3 DIRECTIONAL_LIGHT_DIR(0.5f, -1.0f, 0.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
 std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
+SceneRenderer* SceneRenderer::m_Instance = nullptr;
 
 extern "C" {
 	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
@@ -24,6 +26,8 @@ extern "C" {
 
 SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManager(*AssetManager::Get())
 {
+	m_Instance = this;
+
 	init = Initialize();
 	if (!init) return;
 
@@ -33,14 +37,18 @@ SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManag
 
 SceneRenderer::~SceneRenderer(void)
 {
+	m_Instance = nullptr;
 }
 
 void SceneRenderer::RenderScene()
 {
-	BuildNodeLists(m_TerrainNode.get());
+	BuildNodeLists(m_RootNode.get());
 	SortNodeLists();
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+	if (m_Skybox) 
+		m_Skybox->Draw();
 
 	DrawAllNodes();
 	ClearNodeLists();
@@ -49,9 +57,7 @@ void SceneRenderer::RenderScene()
 void SceneRenderer::UpdateScene(float DeltaTime)
 {
 	if (m_Camera) m_Camera->UpdateCamera(DeltaTime);
-
-	if (m_RootNode)
-		m_RootNode->Update(DeltaTime);
+	if (m_RootNode) m_RootNode->Update(DeltaTime);
 }
 
 bool SceneRenderer::Initialize()
@@ -62,6 +68,7 @@ bool SceneRenderer::Initialize()
 	if (!InitMeshMaterials()) return false;
 	if (!InitMeshAnimations()) return false;
 	if (!InitLights()) return false;
+	if (!InitSkybox()) return false;
 	if (!InitSceneNodes()) return false;
 	if (!InitGLParameters()) return false;
 
@@ -72,6 +79,7 @@ bool SceneRenderer::InitCamera()
 {
 	m_Camera = std::shared_ptr<Camera>(new Camera());
 	m_Camera->SetDefaultSpeed(850.0f);
+	m_Camera->SetProjMatrix(1.0f, 15000.0f, (float)width, (float)height);
 	
 	return m_Camera != nullptr;
 }
@@ -81,11 +89,18 @@ bool SceneRenderer::InitShaders()
 	m_TerrainShader = m_AssetManager.GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
 	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
-	return m_TerrainShader->LoadSuccess() && m_DiffuseShader->LoadSuccess() && m_DiffuseAnimShader->LoadSuccess();
+	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", "skyboxVertex.glsl", "skyboxFragment.glsl");
+
+	return  m_TerrainShader->LoadSuccess() && 
+			m_DiffuseShader->LoadSuccess() && 
+			m_DiffuseAnimShader->LoadSuccess() && 
+			m_SkyboxShader->LoadSuccess();
 }
 
 bool SceneRenderer::InitMeshes()
 {
+	m_QuadMesh = std::shared_ptr<Mesh>(Mesh::GenerateQuad());
+
 	m_AssetManager.GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
 	m_AssetManager.GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");
 	m_AssetManager.GetMesh("CastleMain", MESHDIRCOURSE"Castle/Mesh_CastleMain.msh");
@@ -138,6 +153,18 @@ bool SceneRenderer::InitLights()
 	}
 
 	return true;
+}
+
+bool SceneRenderer::InitSkybox()
+{
+	m_Skybox = std::shared_ptr<Skybox>(new Skybox());
+	if (m_Skybox != nullptr)
+	{
+		std::cout << "Skybox: Ready" << std::endl;
+		return true;
+	}
+
+	return false;
 }
 
 bool SceneRenderer::InitGLParameters()
@@ -308,9 +335,10 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 
 		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
 		viewMatrix = m_Camera->BuildViewMatrix();
-		projMatrix = Matrix4::Perspective(1.0f, 15000.0f, (float)width / (float)height, 60.0f);
+		projMatrix = m_Camera->GetProjMatrix();
 
 		nodeShader->SetVector3("cameraPos", m_Camera->getPosition());
+
 		nodeShader->SetMat4("modelMatrix", modelMatrix);
 		nodeShader->SetMat4("viewMatrix", viewMatrix);
 		nodeShader->SetMat4("projMatrix", projMatrix);
