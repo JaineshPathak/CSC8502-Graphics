@@ -19,3 +19,8 @@ void TerrainNode::Draw(const OGLRenderer& r)
 
 	m_TerrainHMap->Draw();
 }
+
+void TerrainNode::DepthDraw(Shader* s)
+{
+	m_TerrainHMap->Draw();
+}

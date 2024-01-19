@@ -1,5 +1,9 @@
 #pragma once
 #include "../NCLGL/OGLRenderer.h"
+#include "../Third Party/imgui/imgui.h"
+#include "../Third Party/imgui/imgui_impl_opengl3.h"
+#include "../Third Party/imgui/imgui_impl_win32.h"
+
 #include <memory>
 
 class AssetManager;
@@ -7,6 +11,7 @@ class Camera;
 class SceneNode;
 class TerrainNode;
 class TreePropNode;
+class LightPointNode;
 class MeshMaterial;
 class MeshAnimation;
 class DirectionalLight;
@@ -78,6 +83,7 @@ protected:
 	void BuildNodeLists(SceneNode* fromNode);
 	void SortNodeLists();
 	void ClearNodeLists();
+	void DrawImGui();
 
 	void DrawNode(SceneNode* Node);
 	void DrawDepthNode(SceneNode* Node);
@@ -89,6 +95,7 @@ private:
 
 	std::shared_ptr<Mesh> m_CubeMesh;
 	std::shared_ptr<Mesh> m_QuadMesh;
+	std::shared_ptr<Mesh> m_QuadMiniMesh;
 
 	std::shared_ptr<Camera> m_Camera;
 
@@ -96,7 +103,7 @@ private:
 	std::shared_ptr<TerrainNode> m_TerrainNode;
 
 	std::shared_ptr<DirectionalLight> m_DirLight;
-	std::vector<Light> m_PointLightsList;
+	std::vector<std::shared_ptr<LightPointNode>> m_PointLightsList;
 	int m_PointLightsNum;
 
 	std::shared_ptr<Skybox> m_Skybox;
@@ -113,6 +120,8 @@ private:
 	std::shared_ptr<Shader> m_QuadShader;
 
 	Matrix4 m_LightSpaceMatrix;
+
+	float m_OrthographicFOV;
 
 public:
 	inline std::shared_ptr<SceneNode> GetRootNode() const { return m_RootNode; }

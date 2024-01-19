@@ -5,22 +5,36 @@
 class LightPointNode : public SceneNode
 {
 public:
-	LightPointNode(const Vector4& lightColour, const Vector4& lightSpecularColour, const float& lightRadius);
+	LightPointNode();
+	LightPointNode(const Vector4& lightColour, const Vector4& lightSpecularColour, const float& lightRadius, const float& lightIntensity);
+	~LightPointNode();
 
-	int GetLightType() { return lightType; }
+	LIGHT_TYPE GetLightType() const { return m_LightType; }
 
-	virtual Vector4 GetLightColour() { return pointLightColour; }
-	virtual Vector4 GetLightSpecularColour() { return pointLightColour; }
-	virtual float GetLightRadius() { return pointLightRadius; }
+	Vector3 GetLightPosition() const;
+	void SetPosition(const Vector3& pos);
+
+	float GetLightRadius() const { return m_PointLightRadius; }
+	void SetLightRadius(const float& radius);
+
+	float GetLightIntensity() const { return m_PointLightIntensity; }
+	void SetLightIntensity(const float& intensity);
+
+	Vector4 GetLightColour() const { return m_PointLightColour; }
+	void SetLightColour(const Vector4& lightColour);
+
+	Vector4 GetLightSpecularColour() const { return m_PointLightColour; }
+	void SetLightSpecularColour(const Vector4& lightSpecularColour);
 
 	virtual void Update(float dt) override;
 
 protected:
-	Light* light;
-	LIGHT_TYPE lightType = TYPE_POINTLIGHT;
+	Light m_PointLight;
+	LIGHT_TYPE m_LightType = TYPE_POINTLIGHT;
 
 	//Point Lights Properties
-	float pointLightRadius;
-	Vector4 pointLightColour;
-	Vector4 pointLightSpecularColour;
+	float m_PointLightRadius;
+	float m_PointLightIntensity;
+	Vector4 m_PointLightColour;
+	Vector4 m_PointLightSpecularColour;
 };

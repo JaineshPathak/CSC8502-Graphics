@@ -13,8 +13,12 @@ in vec4 tangent;
 in vec4 jointWeights;
 in ivec4 jointIndices;
 
+out vec2 TexCoordsOUT;
+
 void main(void) 
 {
+	TexCoordsOUT = texCoord;
+
 	vec4 pos = vec4(position, 1.0);
 	vec4 final = vec4(1.0);
 	if(isAnimated)

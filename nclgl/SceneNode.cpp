@@ -55,6 +55,17 @@ void SceneNode::Draw(const OGLRenderer& r)
 		mesh->Draw();
 }
 
+void SceneNode::DepthDraw(Shader* shader)
+{
+	if (mesh)
+	{
+		for (int i = 0; i < mesh->GetSubMeshCount(); i++)
+		{
+			mesh->DrawSubMesh(i);
+		}
+	}
+}
+
 void SceneNode::Update(float dt)
 {
 	worldTransform = parent ? parent->worldTransform * localTransform : localTransform;

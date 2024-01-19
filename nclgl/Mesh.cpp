@@ -132,6 +132,48 @@ Mesh* Mesh::GenerateQuad()
 	return m;
 }
 
+Mesh* Mesh::GenerateQuadMini()
+{
+	Mesh* m = new Mesh();
+	m->type = GL_TRIANGLE_STRIP;
+	m->numVertices = 4;
+
+	m->vertices = new Vector3[m->numVertices];
+	m->normals = new Vector3[m->numVertices];
+	m->tangents = new Vector4[m->numVertices];
+	/*m->vertices[0] = Vector3(0.5f, 0.5f, 0.0f);
+	m->vertices[1] = Vector3(-0.5f, 0.5f, 0.0f);
+	m->vertices[2] = Vector3(0.5f, -0.5f, 0.0f);
+	m->vertices[3] = Vector3(-0.5f, -0.5f, 0.0f);*/
+
+	m->vertices[0] = Vector3(-0.25f, 0.3f, 0.0f);
+	m->vertices[1] = Vector3(-0.25f, -0.3f, 0.0f);
+	m->vertices[2] = Vector3(0.25f, 0.3f, 0.0f);
+	m->vertices[3] = Vector3(0.25f, -0.3f, 0.0f);
+
+	m->colours = new Vector4[m->numVertices];
+	/*m->colours[0] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+	m->colours[1] = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
+	m->colours[2] = Vector4(0.0f, 0.0f, 1.0f, 1.0f);
+	m->colours[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);*/
+
+	m->textureCoords = new Vector2[m->numVertices];
+	m->textureCoords[0] = Vector2(0.0f, 1.0f);
+	m->textureCoords[1] = Vector2(0.0f, 0.0f);
+	m->textureCoords[2] = Vector2(1.0f, 1.0f);
+	m->textureCoords[3] = Vector2(1.0f, 0.0f);
+
+	for (int i = 0; i < 4; i++)
+	{
+		m->colours[i] = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+		m->normals[i] = Vector3(0.0f, 0.0f, -1.0f);
+		m->tangents[i] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+	}
+
+	m->BufferData();
+	return m;
+}
+
 Mesh* Mesh::GenerateCircle(float cx, float cy, float r, Vector4 color, GLuint type, int numSides)
 {
 	Mesh* m = new Mesh();

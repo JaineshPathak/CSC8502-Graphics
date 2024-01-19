@@ -13,6 +13,7 @@ public:
 
 	virtual void Update(float dt) override;
 	virtual void Draw(const OGLRenderer& r) override;
+	virtual void DepthDraw(Shader* s) override;
 
 	vector<Matrix4> GetFrameMatrices() { return frameMatrices; }
 

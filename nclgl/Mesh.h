@@ -54,6 +54,7 @@ public:
 
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
+	static Mesh* GenerateQuadMini();
 	static Mesh* GenerateCircle(float cx, float cy, float r, Vector4 color, GLuint type, int numSides);
 	static Mesh* GenerateCube();
 

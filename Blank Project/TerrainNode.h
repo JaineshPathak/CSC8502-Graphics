@@ -14,6 +14,7 @@ public:
 
 	virtual Mesh* GetMesh() const override { return m_TerrainHMap.get(); }
 	virtual void Draw(const OGLRenderer& r) override;
+	virtual void DepthDraw(Shader* s) override;
 
 protected:
 	std::shared_ptr<TerrainHeightmap> m_TerrainHMap;

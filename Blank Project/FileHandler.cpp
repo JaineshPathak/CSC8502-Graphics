@@ -1,4 +1,5 @@
 #include "FileHandler.h"
+#include "LightPointNode.h"
 
 //----------------------------------------------------------------------------------------------------------
 
@@ -308,7 +309,131 @@ void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLigh
 	fileReader.close();
 }
 
+void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLight& dirLight, std::vector<std::shared_ptr<LightPointNode>>& pointLightsData)
+{
+	std::ifstream fileReader(fileName, std::ios::in);
+	fileReader.exceptions(std::ifstream::badbit);
 
+	std::string line;
+
+	Vector3 dirLightDir;
+	fileReader >> (float)dirLightDir.x;
+	fileReader >> (float)dirLightDir.y;
+	fileReader >> (float)dirLightDir.z;
+	//dirLight.SetLightDir(dirLightDir);
+
+	Vector4 dirLightColour;
+	fileReader >> (float)dirLightColour.x;
+	fileReader >> (float)dirLightColour.y;
+	fileReader >> (float)dirLightColour.z;
+	fileReader >> (float)dirLightColour.w;
+	dirLight.SetColour(dirLightColour);
+
+	float dirLightIntensity;
+	fileReader >> (float)dirLightIntensity;
+	dirLight.SetIntensity(dirLightIntensity);
+
+	//==================================================================
+	std::vector<Vector3> pLightPos;
+	std::vector<Vector4> pLightColour;
+	std::vector<Vector4> pLightSpecColour;
+	std::vector<float> pLightRadius;
+	std::vector<float> pLightIntensity;
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightPos")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector3 lightPos;
+			ss >> (float)lightPos.x;
+			ss >> (float)lightPos.y;
+			ss >> (float)lightPos.z;
+			pLightPos.push_back(lightPos);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightCol;
+			ss >> (float)lightCol.x;
+			ss >> (float)lightCol.y;
+			ss >> (float)lightCol.z;
+			ss >> (float)lightCol.w;
+			pLightColour.push_back(lightCol);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightSpecularColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightColS;
+			ss >> (float)lightColS.x;
+			ss >> (float)lightColS.y;
+			ss >> (float)lightColS.z;
+			ss >> (float)lightColS.w;
+			pLightSpecColour.push_back(lightColS);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightRadius")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightR;
+			ss >> (float)lightR;
+			pLightRadius.push_back(lightR);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightIntensity")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightI;
+			ss >> (float)lightI;
+			pLightIntensity.push_back(lightI);
+		}
+	}
+
+	for (size_t i = 0; i < pLightPos.size(); i++)
+	{
+		std::shared_ptr<LightPointNode> pointLight = std::shared_ptr<LightPointNode>(new LightPointNode());
+		pointLight->SetLightColour(pLightColour[i]);
+		pointLight->SetLightSpecularColour(pLightSpecColour[i]);
+		pointLight->SetLightRadius(pLightRadius[i]);
+		pointLight->SetLightIntensity(pLightIntensity[i]);
+		pointLight->SetPosition(pLightPos[i]);
+		pointLightsData.push_back(pointLight);
+	}
+
+	fileReader.close();
+}
 
 void FileHandler::SaveCameraPathFile(const std::string& fileName, const std::vector<Vector3>& camPosV, const std::vector<Vector3>& camRotV, const std::vector<float>& camDelayV)
 {

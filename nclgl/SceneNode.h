@@ -46,6 +46,7 @@ public:
 
 	virtual void Update(float dt);
 	virtual void Draw(const OGLRenderer& r);
+	virtual void DepthDraw(Shader* shader);
 
 	std::vector<SceneNode*>::const_iterator GetChildIteratorStart() { return children.begin(); }
 	std::vector<SceneNode*>::const_iterator GetChildIteratorEnd() { return children.end(); }

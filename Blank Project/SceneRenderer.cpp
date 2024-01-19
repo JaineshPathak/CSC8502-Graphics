@@ -5,6 +5,7 @@
 #include "TerrainNode.h"
 #include "TreePropNode.h"
 #include "AnimMeshNode.h"
+#include "LightPointNode.h"
 #include "Skybox.h"
 #include "ShadowBuffer.h"
 
@@ -14,7 +15,7 @@
 #include <algorithm>
 
 const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
-const Vector3 DIRECTIONAL_LIGHT_DIR(0.0, -1.0f, 0.0f);
+const Vector3 DIRECTIONAL_LIGHT_DIR(-0.15f, -1.0f, -1.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
 std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
@@ -25,20 +26,43 @@ extern "C" {
 	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
 
-SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManager(*AssetManager::Get())
+SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManager(*AssetManager::Get()), m_OrthographicFOV(24.0f)
 {
 	m_Instance = this;
+
+	//-----------------------------------------------------------
+	//Imgui 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplWin32_Init(parent.GetHandle());
+	ImGui_ImplOpenGL3_Init("#version 330");
+	//-----------------------------------------------------------
 
 	init = Initialize();
 	if (!init) return;
 
-	if (m_Camera && m_TerrainNode)
-		m_Camera->SetPosition(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 4.5f, 0.5f));
+	//if (m_Camera && m_TerrainNode)
+		//m_Camera->SetPosition(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 4.5f, 0.5f));
+
+	if (m_TerrainNode)
+	{
+		for (const auto& pointLight : m_PointLightsList)
+			m_TerrainNode->AddChild(pointLight.get());
+
+		m_TerrainNode->SetModelPosition(m_TerrainNode->GetHeightmapSize() * Vector3(-0.5f, -0.5f, -0.5f));
+		m_TerrainNode->SetTransform(Matrix4::Translation(m_TerrainNode->GetModelPosition()) * m_TerrainNode->GetRotationMatrix() * Matrix4::Scale(m_TerrainNode->GetModelScale()));
+	}
 }
 
 SceneRenderer::~SceneRenderer(void)
 {
 	m_Instance = nullptr;
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void SceneRenderer::RenderScene()
@@ -57,7 +81,8 @@ void SceneRenderer::RenderScene()
 	DrawAllNodes();
 	ClearNodeLists();
 
-	//DrawQuadScreen();
+	DrawQuadScreen();
+	DrawImGui();
 }
 
 void SceneRenderer::UpdateScene(float DeltaTime)
@@ -68,6 +93,14 @@ void SceneRenderer::UpdateScene(float DeltaTime)
 		m_Camera->BuildViewMatrix();
 	}
 	if (m_RootNode) m_RootNode->Update(DeltaTime);
+
+	if (Window::GetKeyboard()->KeyHeld(KeyboardKeys::KEYBOARD_UP))
+		m_OrthographicFOV += DeltaTime;
+	
+	if (Window::GetKeyboard()->KeyHeld(KeyboardKeys::KEYBOARD_DOWN))
+		m_OrthographicFOV -= DeltaTime;
+
+	//std::cout << "Ortho FOV: " << m_OrthographicFOV << std::endl;
 }
 
 bool SceneRenderer::Initialize()
@@ -101,7 +134,7 @@ bool SceneRenderer::InitShaders()
 	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
 	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", "skyboxVertex.glsl", "skyboxFragment.glsl");
-	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthBufferFrag.glsl");
+	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthShadowBufferFrag.glsl");
 	m_QuadShader = m_AssetManager.GetShader("QuadDepthShader", "DepthQuadBufferVert.glsl", "DepthQuadBufferFrag.glsl");
 
 	return  m_TerrainShader->LoadSuccess() && 
@@ -115,6 +148,7 @@ bool SceneRenderer::InitShaders()
 bool SceneRenderer::InitMeshes()
 {
 	m_QuadMesh = std::shared_ptr<Mesh>(Mesh::GenerateQuad());
+	m_QuadMiniMesh = std::shared_ptr<Mesh>(Mesh::GenerateQuadMini());
 
 	m_AssetManager.GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
 	m_AssetManager.GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");
@@ -158,7 +192,7 @@ bool SceneRenderer::InitMeshAnimations()
 
 bool SceneRenderer::InitBuffers()
 {
-	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(1024, 1024));
+	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(2048, 2048));
 	return m_ShadowBuffer != nullptr;
 }
 
@@ -170,7 +204,7 @@ bool SceneRenderer::InitLights()
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
 	{
 		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *m_DirLight, m_PointLightsList);		
-		m_PointLightsNum = (int)m_PointLightsList.size();
+		m_PointLightsNum = (int)m_PointLightsList.size();		
 	}
 
 	return true;
@@ -316,11 +350,15 @@ void SceneRenderer::DrawShadowDepth()
 	m_ShadowBuffer->Bind();
 	m_DepthShadowShader->Bind();
 
-	float near_plane = 0.1f, far_plane = 10000.0f;
-	Matrix4 lightProjection = Matrix4::Orthographic(near_plane, far_plane, 1000.0f, -1000.0f, 1000.0f, -1000.0f);
-	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_Camera->getPosition() + m_Camera->GetForward(), m_Camera->GetUp());
-	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_DirLight->GetLightDir(), Vector3(0, 0, 0), Vector3(0.0f, 1.0f, 0.0f));
-	Matrix4 lightView = Matrix4::BuildViewMatrix(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 0.5f, 0.5f), m_DirLight->GetLightDir(), Vector3(0.0f, 1.0f, 0.0f));
+	float near_plane = -1000.0f, far_plane = 10000.0f;
+	float left_plane = -100.0f * m_OrthographicFOV;
+	float right_plane = 100.0f * m_OrthographicFOV;
+	float top_plane = 100.0f * m_OrthographicFOV;
+	float bottom_plane = -100.0f * m_OrthographicFOV;
+	Matrix4 lightProjection = Matrix4::Orthographic(near_plane, far_plane, right_plane, left_plane, top_plane, bottom_plane);
+	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_Camera->getPosition() + m_Camera->GetForward(), Vector3(0.0f, 1.0f, 0.0f));
+	Matrix4 lightView = Matrix4::BuildViewMatrix(-m_DirLight->GetLightDir(), Vector3(0, 0, 0), Vector3(0.0f, 1.0f, 0.0f));
+	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 0.5f, 0.5f), m_DirLight->GetLightDir(), Vector3(0.0f, 1.0f, 0.0f));
 	m_LightSpaceMatrix = lightProjection * lightView;
 
 	m_DepthShadowShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
@@ -338,7 +376,7 @@ void SceneRenderer::DrawAllNodes(const bool& isDepth)
 {
 	for (const auto& i : m_OpaqueNodesList)
 		isDepth ? DrawDepthNode(i) : DrawNode(i);
-
+	
 	for (const auto& i : m_TransparentNodesList)
 		isDepth ? DrawDepthNode(i) : DrawNode(i);
 }
@@ -374,6 +412,23 @@ void SceneRenderer::ClearNodeLists()
 	m_OpaqueNodesList.push_back(m_TerrainNode.get());
 }
 
+void SceneRenderer::DrawImGui()
+{
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
+	if (ImGui::CollapsingHeader("Directional Light"))
+	{
+		Vector3 lightDir = m_DirLight->GetLightDir();
+		if (ImGui::DragFloat3("Dir", (float*)&lightDir, 0.01f, -1.0f, 1.0f))
+			m_DirLight->SetLightDir(lightDir);
+	}
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
 void SceneRenderer::DrawNode(SceneNode* Node)
 {
 	if (Node->GetMesh())
@@ -386,7 +441,7 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 		viewMatrix = m_Camera->GetViewMatrix();
 		projMatrix = m_Camera->GetProjMatrix();
 		//viewMatrix = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 2.0f, 0.5f), Vector3(0.0f, 1.0f, 0.0f));
-		//projMatrix = Matrix4::Orthographic(0.1f, 1000.0f, 1000.0f, -1000.0f, 1000.0f, -1000.0f);
+		//projMatrix = Matrix4::Orthographic(-1000.0f, 10000.0f, 100.0f * m_OrthographicFOV, -100.0f * m_OrthographicFOV, 100.0f * m_OrthographicFOV, -100.0f * m_OrthographicFOV);
 
 		nodeShader->SetVector3("cameraPos", m_Camera->getPosition());
 
@@ -404,17 +459,17 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 		{
 			for (size_t i = 0; i < m_PointLightsList.size(); i++)
 			{
-				Light& pointLight = m_PointLightsList[i];
+				LightPointNode& pointLight = *m_PointLightsList[i];
 
 				std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
 				std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
 				std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
 				std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
 				
-				nodeShader->SetVector3(lightPosName, pointLight.GetPosition());
-				nodeShader->SetVector4(lightColorName, pointLight.GetColour());
-				nodeShader->SetFloat(lightRadiusName, pointLight.GetRadius());
-				nodeShader->SetFloat(lightIntensityName, pointLight.GetIntensity());
+				nodeShader->SetVector3(lightPosName, pointLight.GetLightPosition());
+				nodeShader->SetVector4(lightColorName, pointLight.GetLightColour());
+				nodeShader->SetFloat(lightRadiusName, pointLight.GetLightRadius());
+				nodeShader->SetFloat(lightIntensityName, pointLight.GetLightIntensity());
 			}
 		}
 
@@ -445,7 +500,8 @@ void SceneRenderer::DrawDepthNode(SceneNode* Node)
 			glUniformMatrix4fv(j, (GLsizei)animNode->GetFrameMatrices().size(), false, (float*)animNode->GetFrameMatrices().data());			
 		}
 		
-		Node->GetMesh()->Draw();
+		Node->DepthDraw(m_DepthShadowShader.get());
+		//Node->GetMesh()->Draw();
 
 		/*viewMatrix = m_Camera->GetViewMatrix();
 		projMatrix = m_Camera->GetProjMatrix();
@@ -466,7 +522,7 @@ void SceneRenderer::DrawQuadScreen()
 
 	m_QuadShader->SetTexture("diffuseTex", m_ShadowBuffer->GetDepthTexture(), 0);
 
-	m_QuadMesh->Draw();
+	m_QuadMiniMesh->Draw();
 
 	m_QuadShader->UnBind();
 }

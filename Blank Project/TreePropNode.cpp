@@ -53,3 +53,14 @@ void TreePropNode::Draw(const OGLRenderer& r)
 		mesh->DrawSubMesh(i);
 	}
 }
+
+void TreePropNode::DepthDraw(Shader* s)
+{
+	for (int i = 0; i < mesh->GetSubMeshCount(); i++)
+	{
+		if(matTextures[i] != -1)
+			s->SetTexture("diffuseTex", matTextures[i], 0);
+
+		mesh->DrawSubMesh(i);
+	}
+}
