@@ -6,6 +6,7 @@
 #include "TreePropNode.h"
 #include "AnimMeshNode.h"
 #include "Skybox.h"
+#include "ShadowBuffer.h"
 
 #include <nclgl/Camera.h>
 #include <nclgl/DirectionalLight.h>
@@ -13,7 +14,7 @@
 #include <algorithm>
 
 const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
-const Vector3 DIRECTIONAL_LIGHT_DIR(0.5f, -1.0f, 0.0f);
+const Vector3 DIRECTIONAL_LIGHT_DIR(0.0, -1.0f, 0.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
 std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
@@ -44,7 +45,10 @@ void SceneRenderer::RenderScene()
 {
 	BuildNodeLists(m_RootNode.get());
 	SortNodeLists();
+	
+	DrawShadowDepth();
 
+	glViewport(0, 0, width, height);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 	if (m_Skybox) 
@@ -52,11 +56,17 @@ void SceneRenderer::RenderScene()
 
 	DrawAllNodes();
 	ClearNodeLists();
+
+	//DrawQuadScreen();
 }
 
 void SceneRenderer::UpdateScene(float DeltaTime)
 {
-	if (m_Camera) m_Camera->UpdateCamera(DeltaTime);
+	if (m_Camera)
+	{
+		m_Camera->UpdateCamera(DeltaTime);
+		m_Camera->BuildViewMatrix();
+	}
 	if (m_RootNode) m_RootNode->Update(DeltaTime);
 }
 
@@ -67,6 +77,7 @@ bool SceneRenderer::Initialize()
 	if (!InitMeshes()) return false;
 	if (!InitMeshMaterials()) return false;
 	if (!InitMeshAnimations()) return false;
+	if (!InitBuffers()) return false;
 	if (!InitLights()) return false;
 	if (!InitSkybox()) return false;
 	if (!InitSceneNodes()) return false;
@@ -90,11 +101,15 @@ bool SceneRenderer::InitShaders()
 	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
 	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", "skyboxVertex.glsl", "skyboxFragment.glsl");
+	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthBufferFrag.glsl");
+	m_QuadShader = m_AssetManager.GetShader("QuadDepthShader", "DepthQuadBufferVert.glsl", "DepthQuadBufferFrag.glsl");
 
 	return  m_TerrainShader->LoadSuccess() && 
 			m_DiffuseShader->LoadSuccess() && 
 			m_DiffuseAnimShader->LoadSuccess() && 
-			m_SkyboxShader->LoadSuccess();
+			m_SkyboxShader->LoadSuccess() &&
+			m_DepthShadowShader->LoadSuccess() &&
+			m_QuadShader->LoadSuccess();
 }
 
 bool SceneRenderer::InitMeshes()
@@ -139,6 +154,12 @@ bool SceneRenderer::InitMeshAnimations()
 	m_AssetManager.GetMeshAnimation("MonsterCrabAnim", MESHDIRCOURSE"Monsters/Monster_Crab.anm");
 
 	return true;
+}
+
+bool SceneRenderer::InitBuffers()
+{
+	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(1024, 1024));
+	return m_ShadowBuffer != nullptr;
 }
 
 bool SceneRenderer::InitLights()
@@ -285,13 +306,41 @@ void SceneRenderer::SpawnSceneNode(const AnimSceneNodeProperties& nodeProp)
 	}
 }
 
-void SceneRenderer::DrawAllNodes()
+void SceneRenderer::DrawShadowDepth()
+{
+	if (m_ShadowBuffer == nullptr) return;
+	if (m_DepthShadowShader == nullptr) return;
+
+	glCullFace(GL_FRONT);
+
+	m_ShadowBuffer->Bind();
+	m_DepthShadowShader->Bind();
+
+	float near_plane = 0.1f, far_plane = 10000.0f;
+	Matrix4 lightProjection = Matrix4::Orthographic(near_plane, far_plane, 1000.0f, -1000.0f, 1000.0f, -1000.0f);
+	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_Camera->getPosition() + m_Camera->GetForward(), m_Camera->GetUp());
+	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_DirLight->GetLightDir(), Vector3(0, 0, 0), Vector3(0.0f, 1.0f, 0.0f));
+	Matrix4 lightView = Matrix4::BuildViewMatrix(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 0.5f, 0.5f), m_DirLight->GetLightDir(), Vector3(0.0f, 1.0f, 0.0f));
+	m_LightSpaceMatrix = lightProjection * lightView;
+
+	m_DepthShadowShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+	DrawAllNodes(true);
+
+	m_DepthShadowShader->UnBind();
+	m_ShadowBuffer->UnBind();
+
+	glCullFace(GL_BACK);
+}
+
+void SceneRenderer::DrawAllNodes(const bool& isDepth)
 {
 	for (const auto& i : m_OpaqueNodesList)
-		DrawNode(i);
+		isDepth ? DrawDepthNode(i) : DrawNode(i);
 
 	for (const auto& i : m_TransparentNodesList)
-		DrawNode(i);
+		isDepth ? DrawDepthNode(i) : DrawNode(i);
 }
 
 void SceneRenderer::BuildNodeLists(SceneNode* fromNode)
@@ -334,17 +383,20 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 		nodeShader->Bind();
 
 		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
-		viewMatrix = m_Camera->BuildViewMatrix();
+		viewMatrix = m_Camera->GetViewMatrix();
 		projMatrix = m_Camera->GetProjMatrix();
+		//viewMatrix = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 2.0f, 0.5f), Vector3(0.0f, 1.0f, 0.0f));
+		//projMatrix = Matrix4::Orthographic(0.1f, 1000.0f, 1000.0f, -1000.0f, 1000.0f, -1000.0f);
 
 		nodeShader->SetVector3("cameraPos", m_Camera->getPosition());
 
 		nodeShader->SetMat4("modelMatrix", modelMatrix);
 		nodeShader->SetMat4("viewMatrix", viewMatrix);
 		nodeShader->SetMat4("projMatrix", projMatrix);
+		nodeShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
 
-		nodeShader->SetVector3("lightDir", DIRECTIONAL_LIGHT_DIR);
-		nodeShader->SetVector4("lightDirColour", DIRECTIONAL_LIGHT_COLOUR);
+		nodeShader->SetVector3("lightDir", m_DirLight->GetLightDir());
+		nodeShader->SetVector4("lightDirColour", m_DirLight->GetColour());
 		nodeShader->SetFloat("lightDirIntensity", 1.0f);
 
 		nodeShader->SetInt("numPointLights", m_PointLightsNum);
@@ -373,4 +425,53 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 
 		nodeShader->UnBind();
 	}
+}
+
+void SceneRenderer::DrawDepthNode(SceneNode* Node)
+{
+	if (Node != nullptr && Node->GetMesh())
+	{
+		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
+
+		m_DepthShadowShader->SetMat4("modelMatrix", modelMatrix);
+
+		AnimMeshNode* animNode = dynamic_cast<AnimMeshNode*>(Node);
+		m_DepthShadowShader->SetBool("isAnimated", animNode != nullptr);
+		if (animNode != nullptr)
+		{
+			animNode->CalcFrameMatrices();
+			
+			int j = glGetUniformLocation(m_DepthShadowShader->GetProgram(), "joints");
+			glUniformMatrix4fv(j, (GLsizei)animNode->GetFrameMatrices().size(), false, (float*)animNode->GetFrameMatrices().data());			
+		}
+		
+		Node->GetMesh()->Draw();
+
+		/*viewMatrix = m_Camera->GetViewMatrix();
+		projMatrix = m_Camera->GetProjMatrix();
+
+		m_DepthShadowShader->SetMat4("modelMatrix", modelMatrix);
+		m_DepthShadowShader->SetMat4("viewMatrix", viewMatrix);
+		m_DepthShadowShader->SetMat4("projMatrix", projMatrix);*/		
+	}
+}
+
+void SceneRenderer::DrawQuadScreen()
+{
+	m_QuadShader->Bind();
+
+	modelMatrix.ToIdentity();
+	viewMatrix.ToIdentity();
+	projMatrix.ToIdentity();
+
+	m_QuadShader->SetTexture("diffuseTex", m_ShadowBuffer->GetDepthTexture(), 0);
+
+	m_QuadMesh->Draw();
+
+	m_QuadShader->UnBind();
+}
+
+unsigned int SceneRenderer::GetDepthTexture() const
+{
+	return m_ShadowBuffer->GetDepthTexture();
 }

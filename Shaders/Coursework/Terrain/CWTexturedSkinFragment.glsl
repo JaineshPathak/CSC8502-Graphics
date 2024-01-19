@@ -1,11 +1,11 @@
 #version 330 core
 
-uniform bool hasBumpTex = true;
 uniform sampler2D diffuseTex;
 uniform sampler2D bumpTex;
 uniform sampler2D shadowTex;
 
 uniform vec3 cameraPos;
+uniform bool hasBumpTex = true;
 
 //Directional Light
 uniform int flipLightDir;
@@ -39,6 +39,7 @@ in Vertex
 	vec3 binormal;
 	vec3 worldPos;
 	vec4 shadowProj;
+	vec4 fragPosLightSpace;
 
 	float visibility;
 	vec4 weightColor;
@@ -48,6 +49,36 @@ out vec4 fragColour;
 
 vec3 CalcDirLight(vec3 viewDir, vec3 normal);
 vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _normal);
+
+float ShadowCalc(float NdotL)
+{
+	vec3 projCoords = IN.fragPosLightSpace.xyz / IN.fragPosLightSpace.w;
+	projCoords = projCoords * 0.5 + 0.5;
+
+	float closestDepth = texture(shadowTex, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+
+	float bias = max(0.05 * (1.0 - NdotL), 0.005);
+	float shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(shadowTex, 0);
+	const int halfkernelWidth = 3;
+	for(int x = -halfkernelWidth; x <= halfkernelWidth; x++)
+	{
+		for(int y = -halfkernelWidth; y <= halfkernelWidth; y++)
+		{
+			float pcfDepth = texture(shadowTex, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 0.7 : 0.0;
+		}
+	}
+	
+	//shadow /= 9.0;
+	shadow /= ((halfkernelWidth * 2.0 + 1.0) * (halfkernelWidth * 2.0 + 1.0));
+
+	if(projCoords.z > 1.0)
+        shadow = 0.0;
+	
+	return shadow;
+}
 
 void main(void)
 {
@@ -101,7 +132,9 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal)
 	vec3 diffuse = NdotL * lightDirIntensity * lightDirColour.rgb;
 	vec3 specular = specFactor * lightDirColour.rgb;
 
-	return (ambient + diffuse + specular) * albedoColor;
+	float shadow = ShadowCalc(NdotL);
+
+	return (ambient + (1.0 - shadow) * (diffuse + specular)) * albedoColor;
 
 	/*vec3 incident = normalize(lightDir);
 	vec3 halfDir = normalize(incident + viewDir);	

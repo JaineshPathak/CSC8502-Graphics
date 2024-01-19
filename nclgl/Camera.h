@@ -72,6 +72,9 @@ public:
 	float GetRoll() const { return camRotation.z; }
 	void SetRoll(float val) { camRotation.z = val; }
 
+	Vector3 GetForward() const { return camFront; }
+	Vector3 GetRight() const { return camRight; }
+	Vector3 GetUp() const { return camUp; }
 
 protected:
 	//float pitch;

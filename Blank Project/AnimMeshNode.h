@@ -9,8 +9,12 @@ public:
 	AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, MeshMaterial* mat, const std::string& texPath);
 	~AnimMeshNode();
 
+	void CalcFrameMatrices();
+
 	virtual void Update(float dt) override;
 	virtual void Draw(const OGLRenderer& r) override;
+
+	vector<Matrix4> GetFrameMatrices() { return frameMatrices; }
 
 	//void AnimateMesh();
 	//void DrawMaterial();
@@ -20,6 +24,7 @@ protected:
 	MeshMaterial* MeshMat;
 	vector<GLuint> matTextures;
 	vector<GLuint> matBumpTextures;
+	vector<Matrix4> frameMatrices;
 	int currentFrame;
 	float frameTime;
 };

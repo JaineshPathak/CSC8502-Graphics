@@ -4,6 +4,7 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projMatrix;
 uniform mat4 shadowMatrix;
+uniform mat4 lightSpaceMatrix;
 uniform int enableFog;
 
 uniform vec3 lightPos;
@@ -26,6 +27,7 @@ out Vertex
 	vec3 binormal;
 	vec3 worldPos;
 	vec4 shadowProj;
+	vec4 fragPosLightSpace;
 
 	float visibility;
 	vec4 weightColor;
@@ -78,4 +80,6 @@ void main(void)
 	vec3 viewDir = normalize(lightPos - worldPos.xyz);
 	vec4 pushVal = vec4(OUT.normal, 0) * dot(viewDir, OUT.normal);
 	OUT.shadowProj = shadowMatrix * (worldPos + pushVal);
+
+	OUT.fragPosLightSpace = lightSpaceMatrix * vec4(OUT.worldPos, 1.0);
 }

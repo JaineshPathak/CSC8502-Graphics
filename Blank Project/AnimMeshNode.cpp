@@ -1,5 +1,6 @@
 #include "AnimMeshNode.h"
 #include "AssetManager.h"
+#include "SceneRenderer.h"
 
 AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, MeshMaterial* mat, const std::string& texPath)
 {
@@ -36,6 +37,17 @@ AnimMeshNode::~AnimMeshNode()
 {
 }
 
+void AnimMeshNode::CalcFrameMatrices()
+{
+	const Matrix4* invBindPose = mesh->GetInverseBindPose();
+	const Matrix4* frameData = MeshAnim->GetJointData(currentFrame);
+
+	for (unsigned int i = 0; i < mesh->GetJointCount(); ++i)
+	{
+		frameMatrices.emplace_back(frameData[i] * invBindPose[i]);
+	}
+}
+
 void AnimMeshNode::Update(float dt)
 {
 	frameTime -= dt;
@@ -52,11 +64,11 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 {
 	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "diffuseTex"), 0);
 	//glUniform1i(glGetUniformLocation(shader->GetProgram(), "bumpTex"), 1);
-	
-	vector <Matrix4> frameMatrices;
+
 	const Matrix4* invBindPose = mesh->GetInverseBindPose();
 	const Matrix4* frameData = MeshAnim->GetJointData(currentFrame);
 
+	frameMatrices.clear();
 	for (unsigned int i = 0; i < mesh->GetJointCount(); ++i)
 	{
 		frameMatrices.emplace_back(frameData[i] * invBindPose[i]);
@@ -64,7 +76,7 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 
 	int j = glGetUniformLocation(shader->GetProgram(), "joints");
 	glUniformMatrix4fv(j, (GLsizei)frameMatrices.size(), false, (float*)frameMatrices.data());
-
+	
 	for (int i = 0; i < mesh->GetSubMeshCount(); ++i)
 	{
 		//OGLRenderer::BindTexture(matTextures[i], 0, "diffuseTex", shader);
@@ -90,6 +102,10 @@ void AnimMeshNode::Draw(const OGLRenderer& r)
 			}
 		}
 
+		shader->SetTexture("shadowTex", SceneRenderer::Get()->GetDepthTexture(), 2);
+
 		mesh->DrawSubMesh(i);
 	}
+
+	frameMatrices.clear();
 }

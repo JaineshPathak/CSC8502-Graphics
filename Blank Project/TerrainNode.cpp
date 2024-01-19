@@ -1,4 +1,5 @@
 #include "TerrainNode.h"
+#include "SceneRenderer.h"
 
 TerrainNode::TerrainNode()
 {
@@ -14,6 +15,7 @@ void TerrainNode::Draw(const OGLRenderer& r)
 	shader->SetTexture("diffuseGrassTex", m_TerrainHMap->GetTerrainTextureGrass(), 2);
 	shader->SetTexture("diffuseRocksTex", m_TerrainHMap->GetTerrainTextureRocks(), 3);
 	shader->SetTexture("diffuseGroundTex", m_TerrainHMap->GetTerrainTextureGround(), 4);
+	shader->SetTexture("shadowTex", SceneRenderer::Get()->GetDepthTexture(), 5);
 
 	m_TerrainHMap->Draw();
 }

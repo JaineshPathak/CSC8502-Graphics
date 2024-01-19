@@ -11,6 +11,7 @@ class MeshMaterial;
 class MeshAnimation;
 class DirectionalLight;
 class Skybox;
+class ShadowBuffer;
 
 struct SceneNodeProperties
 {
@@ -63,6 +64,7 @@ protected:
 	bool InitMeshes();
 	bool InitMeshMaterials();
 	bool InitMeshAnimations();
+	bool InitBuffers();
 	bool InitLights();
 	bool InitSkybox();
 	bool InitGLParameters();
@@ -71,12 +73,15 @@ protected:
 	void SpawnSceneNode(const SceneNodeProperties& nodeProp);
 	void SpawnSceneNode(const AnimSceneNodeProperties& nodeProp);
 	
-	void DrawAllNodes();
+	void DrawShadowDepth();
+	void DrawAllNodes(const bool& isDepth = false);
 	void BuildNodeLists(SceneNode* fromNode);
 	void SortNodeLists();
 	void ClearNodeLists();
 
 	void DrawNode(SceneNode* Node);
+	void DrawDepthNode(SceneNode* Node);
+	void DrawQuadScreen();
 
 private:
 	static SceneRenderer* m_Instance;
@@ -95,6 +100,7 @@ private:
 	int m_PointLightsNum;
 
 	std::shared_ptr<Skybox> m_Skybox;
+	std::shared_ptr<ShadowBuffer> m_ShadowBuffer;
 
 	std::vector<SceneNode*> m_OpaqueNodesList;
 	std::vector<SceneNode*> m_TransparentNodesList;
@@ -103,10 +109,15 @@ private:
 	std::shared_ptr<Shader> m_DiffuseShader;
 	std::shared_ptr<Shader> m_DiffuseAnimShader;
 	std::shared_ptr<Shader> m_SkyboxShader;
+	std::shared_ptr<Shader> m_DepthShadowShader;
+	std::shared_ptr<Shader> m_QuadShader;
+
+	Matrix4 m_LightSpaceMatrix;
 
 public:
 	inline std::shared_ptr<SceneNode> GetRootNode() const { return m_RootNode; }
 	inline std::shared_ptr<Camera> GetCamera() const { return m_Camera; }
 
-	inline std::shared_ptr<Mesh> GetQuadMesh() const { return m_QuadMesh; }	
+	inline std::shared_ptr<Mesh> GetQuadMesh() const { return m_QuadMesh; }
+	unsigned int GetDepthTexture() const;
 };

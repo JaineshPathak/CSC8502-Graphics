@@ -193,7 +193,7 @@ void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLigh
 	fileReader >> (float)dirLightDir.x;
 	fileReader >> (float)dirLightDir.y;
 	fileReader >> (float)dirLightDir.z;
-	dirLight.SetLightDir(dirLightDir);
+	//dirLight.SetLightDir(dirLightDir);
 
 	Vector4 dirLightColour;
 	fileReader >> (float)dirLightColour.x;

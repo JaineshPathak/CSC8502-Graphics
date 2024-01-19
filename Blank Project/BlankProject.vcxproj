@@ -149,6 +149,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SceneRenderer.cpp" />
+    <ClCompile Include="ShadowBuffer.cpp" />
     <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="TerrainHeightmap.cpp" />
     <ClCompile Include="TerrainNode.cpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="LightPointNode.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SceneRenderer.h" />
+    <ClInclude Include="ShadowBuffer.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="TerrainHeightmap.h" />
     <ClInclude Include="TerrainNode.h" />

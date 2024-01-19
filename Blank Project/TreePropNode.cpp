@@ -1,5 +1,6 @@
 #include "TreePropNode.h"
 #include "AssetManager.h"
+#include "SceneRenderer.h"
 
 TreePropNode::TreePropNode(Mesh* m, MeshMaterial* treeMat, Shader* s, const std::string& texPath)
 {
@@ -46,6 +47,8 @@ void TreePropNode::Draw(const OGLRenderer& r)
 				shader->SetTexture("bumpTex", matBumpTextures[i], 1);
 			}
 		}
+
+		shader->SetTexture("shadowTex", SceneRenderer::Get()->GetDepthTexture(), 2);
 
 		mesh->DrawSubMesh(i);
 	}

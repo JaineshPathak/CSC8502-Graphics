@@ -24,6 +24,10 @@ void Camera::UpdateCamera(float dt)
 	Vector3 forward = rotation * Vector3(0, 0, -1);
 	Vector3 right = rotation * Vector3(1, 0, 0);
 
+	camFront = forward;
+	camUp = rotation * Vector3(0, 1, 0);
+	camRight = right;
+
 	/*camViewMat = Matrix4::BuildViewMatrix(camPosition, camPosition + camFront, camUp);
 
 	Vector3 lookDir;
