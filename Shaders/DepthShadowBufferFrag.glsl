@@ -7,7 +7,7 @@ in vec2 TexCoords;
 void main(void)
 {
 	//For Transparent textures like Trees
-	vec4 diffuseSample = texture(diffuseTex, TexCoords);
-	if(diffuseSample.a == 0.0)
+	float alpha = texture(diffuseTex, TexCoords).a;
+	if(alpha < 0.5)
 		discard;
 }

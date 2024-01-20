@@ -1,11 +1,13 @@
 #version 330 core
 
-uniform sampler2D bumpTex;
-uniform sampler2D diffuseSplatmapTex;
-uniform sampler2D diffuseGrassTex;
-uniform sampler2D diffuseRocksTex;
-uniform sampler2D diffuseGroundTex;
-uniform sampler2D shadowTex;
+uniform sampler2D diffuseSplatmapTex;		//0
+uniform sampler2D diffuseGrassTex;			//1
+uniform sampler2D bumpGrassTex;				//2
+uniform sampler2D diffuseRocksTex;			//3
+uniform sampler2D bumpRocksTex;				//4
+uniform sampler2D diffuseGroundTex;			//5
+uniform sampler2D bumpGroundTex;			//6
+uniform sampler2D shadowTex;				//7
 
 uniform vec3 cameraPos;
 uniform bool hasBumpTex = true;
@@ -60,7 +62,8 @@ float ShadowCalc(float NdotL)
 	float closestDepth = texture(shadowTex, projCoords.xy).r;
 	float currentDepth = projCoords.z;
 
-	float bias = max(0.05 * (1.0 - NdotL), 0.005);
+	float bias = max(0.005 * (1.0 - NdotL), 0.005);
+	//float bias = 0.005;
 	float shadow = 0.0;
 	vec2 texelSize = 1.0 / textureSize(shadowTex, 0);
 	const int halfkernelWidth = 3;
@@ -88,21 +91,41 @@ void main(void)
 
 	vec3 viewDir = normalize(cameraPos - IN.worldPos);
 
-	mat3 TBN = mat3(normalize(IN.tangent), normalize(IN.binormal), normalize(IN.normal));
-	vec3 normal = IN.normal;
-	if(hasBumpTex)
-	{
-		normal = texture(bumpTex, IN.texCoord ).xyz;
-		normal = normal * 2.0 - 1.0;
-		normal.xy *= 1.0;
-		normal = normalize(TBN * normalize(normal));
-	}
-
 	vec4 splatmap = texture(diffuseSplatmapTex, IN.texCoord / 16.0f);
 
 	float grassAmount = splatmap.r;
 	float rocksAmount = splatmap.g;
 	float groundAmount = splatmap.b;
+
+	mat3 TBN = mat3(normalize(IN.tangent), normalize(IN.binormal), normalize(IN.normal));
+	vec3 normalFinal = IN.normal;
+	if(hasBumpTex)
+	{
+		/*normal = texture(bumpTex, IN.texCoord ).xyz;
+		normal = normal * 2.0 - 1.0;
+		normal.xy *= 1.0;
+		normal = normalize(TBN * normalize(normal));*/
+
+		vec3 grassNormal = texture(bumpGrassTex, IN.texCoord).xyz * grassAmount;
+		//grassNormal = grassNormal * 2.0 - 1.0;
+		//grassNormal.xy *= 1.0;
+		//grassNormal = normalize(TBN * normalize(grassNormal));
+
+		vec3 rocksNormal = texture(bumpRocksTex, IN.texCoord).xyz * rocksAmount;
+		//rocksNormal = rocksNormal * 2.0 - 1.0;
+		//rocksNormal.xy *= 1.0;
+		//rocksNormal = normalize(TBN * normalize(rocksNormal));
+
+		vec3 groundNormal = texture(bumpGroundTex, IN.texCoord).xyz * groundAmount;
+		//groundNormal = groundNormal * 2.0 - 1.0;
+		//groundNormal.xy *= 1.0;
+		//groundNormal = normalize(TBN * normalize(groundNormal));
+
+		normalFinal = grassNormal + rocksNormal + groundNormal;
+		normalFinal = normalFinal * 2.0 - 1.0;
+		normalFinal.xy *= 1.0;
+		normalFinal = normalize(TBN * normalize(normalFinal));
+	}
 
 	vec4 grassTex = texture(diffuseGrassTex, IN.texCoord) * grassAmount;
 	vec4 rocksTex = texture(diffuseRocksTex, IN.texCoord) * rocksAmount;
@@ -111,11 +134,11 @@ void main(void)
 	vec4 diffuseFinal = grassTex + rocksTex + groundTex;
 
 	vec3 result = vec3(0.0);
-	result = CalcDirLight(viewDir, normal, diffuseFinal);
+	result = CalcDirLight(viewDir, normalFinal, diffuseFinal);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, normal, diffuseFinal);
+			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, normalFinal, diffuseFinal);
 	}
 
 	fragColour = vec4(result, 1.0);
@@ -139,16 +162,17 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec4 diffuseFinal)
 	float NdotH = dot(N, H);
 
 	float specFactor = clamp(NdotH, 0.0, 1.0);
-	//specFactor = pow(specFactor, 1.0f);	
+	specFactor = pow(specFactor, 32.0f);	
 
 	vec3 ambient = 0.1f * lightDirColour.rgb;
-	vec3 diffuse = NdotL * lightDirIntensity * lightDirColour.rgb;
+	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
 	vec3 specular = specFactor * lightDirColour.rgb;
 
 	// calculate shadow
     float shadow = ShadowCalc(NdotL);
 
-	return (ambient + (1.0 - shadow) * diffuse) * albedoColor;
+	//return (ambient + diffuse + specular) * albedoColor;
+	return (ambient + (1.0 - shadow) * (diffuse)) * albedoColor;
 
 	/*vec3 incident = normalize(lightDir);
 	vec3 halfDir = normalize(incident + viewDir);	

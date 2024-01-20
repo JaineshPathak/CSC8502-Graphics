@@ -86,7 +86,7 @@ protected:
 	void DrawImGui();
 
 	void DrawNode(SceneNode* Node);
-	void DrawDepthNode(SceneNode* Node);
+	void DrawDepthNode(SceneNode* Node, bool isTransparentNodes = false);
 	void DrawQuadScreen();
 
 private:

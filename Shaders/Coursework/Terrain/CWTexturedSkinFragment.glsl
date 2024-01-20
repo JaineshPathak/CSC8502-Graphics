@@ -91,11 +91,11 @@ void main(void)
 	vec3 normal = IN.normal;
 	if(hasBumpTex)
 	{
-		normal = texture(bumpTex, IN.texCoord ).xyz;
+		normal = texture(bumpTex, IN.texCoord).xyz;
 		normal = normal * 2.0 - 1.0;
 		normal.xy *= 1.0;
-	}
-	normal = normalize(TBN * normalize(normal));
+		normal = normalize(TBN * normalize(normal));
+	}	
 
 	vec3 result = vec3(0.0);
 	result += CalcDirLight(viewDir, normal);
@@ -129,9 +129,10 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal)
 	specFactor = pow(specFactor, 32.0f);
 
 	vec3 ambient = 0.1f * lightDirColour.rgb;
-	vec3 diffuse = NdotL * lightDirIntensity * lightDirColour.rgb;
+	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
 	vec3 specular = specFactor * lightDirColour.rgb;
 
+	// calculate shadow
 	float shadow = ShadowCalc(NdotL);
 
 	return (ambient + (1.0 - shadow) * (diffuse + specular)) * albedoColor;

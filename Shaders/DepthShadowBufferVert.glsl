@@ -8,8 +8,6 @@ uniform mat4 joints[128];
 
 in vec3 position;
 in vec2 texCoord;
-in vec3 normal;
-in vec4 tangent;
 in vec4 jointWeights;
 in ivec4 jointIndices;
 

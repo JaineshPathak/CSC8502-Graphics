@@ -11,7 +11,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 
 	if (!data)
 	{
-		initSuccess = false;
+		m_InitSuccess = false;
 		std::cout << "Terrain Heightmap - can't load image file!\n";
 		return;
 	}
@@ -71,10 +71,10 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	//--------------------------------------------------------------------------
 	// Shader loading
 	//terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
-	terrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
-	if (!terrainShader->LoadSuccess())
+	m_TerrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
+	if (!m_TerrainShader->LoadSuccess())
 	{
-		initSuccess = false;
+		m_InitSuccess = false;
 		std::cout << "Terrain Heightmap - Something went wrong with Shader!\n";
 		return;
 	}
@@ -85,29 +85,44 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
 	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);*/
-	terrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", false);
-	terrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", false);
-	terrainTextureRocks = AssetManager::Get()->GetTexture("TerrainRocks_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", false);
-	terrainTextureGround = AssetManager::Get()->GetTexture("TerrainGround_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", false);
-	if (!terrainTextureSplatmap || !terrainTextureGrass || !terrainTextureGround || !terrainTextureRocks)
+	m_TerrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", false);
+	m_TerrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", false);
+	m_TerrainTextureGrassBump = AssetManager::Get()->GetTexture("TerrainGrass_Bump", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_N.png", false);
+	m_TerrainTextureRocks = AssetManager::Get()->GetTexture("TerrainRocks_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", false);
+	m_TerrainTextureRocksBump = AssetManager::Get()->GetTexture("TerrainRocks_Bump", TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_N.png", false);
+	m_TerrainTextureGround = AssetManager::Get()->GetTexture("TerrainGround_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", false);
+	m_TerrainTextureGroundBump = AssetManager::Get()->GetTexture("TerrainGround_Bump", TEXTUREDIRCOURSETERRAIN"Terrain_Ground_N.png", false);
+	if (!m_TerrainTextureSplatmap || 
+		!m_TerrainTextureGrass ||
+		!m_TerrainTextureGrassBump ||
+		!m_TerrainTextureGround || 
+		!m_TerrainTextureGroundBump || 
+		!m_TerrainTextureRocks ||
+		!m_TerrainTextureRocksBump)
 	{
-		initSuccess = false;
+		m_InitSuccess = false;
 		std::cout << "Terrain Heightmap - Something went wrong with Terrain Textures!\n";
 		return;
 	}
 
-	OGLRenderer::SetTextureRepeating(terrainTextureGrass, true);
-	OGLRenderer::SetTextureRepeating(terrainTextureRocks, true);
-	OGLRenderer::SetTextureRepeating(terrainTextureGround, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureGrass, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureGrassBump, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureRocks, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureRocksBump, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureGround, true);
+	OGLRenderer::SetTextureRepeating(m_TerrainTextureGroundBump, true);
 	//--------------------------------------------------------------------------
 
-	initSuccess = true;
+	m_InitSuccess = true;
 }
 
 TerrainHeightmap::~TerrainHeightmap()
 {
-	glDeleteTextures(1, &terrainTextureSplatmap);
-	glDeleteTextures(1, &terrainTextureGrass);
-	glDeleteTextures(1, &terrainTextureRocks);
-	glDeleteTextures(1, &terrainTextureGround);
+	glDeleteTextures(1, &m_TerrainTextureSplatmap);
+	glDeleteTextures(1, &m_TerrainTextureGrass);
+	glDeleteTextures(1, &m_TerrainTextureGrassBump);
+	glDeleteTextures(1, &m_TerrainTextureRocks);
+	glDeleteTextures(1, &m_TerrainTextureRocksBump);
+	glDeleteTextures(1, &m_TerrainTextureGround);
+	glDeleteTextures(1, &m_TerrainTextureGroundBump);
 }

@@ -92,7 +92,7 @@ void main(void)
 	{
 		normal = texture(bumpTex, IN.texCoord).xyz;
 		normal = normal * 2.0 - 1.0;
-		normal.xy *= 2.0;
+		normal.xy *= 1.0;
 		normal = normalize(TBN * normalize(normal));
 	}
 

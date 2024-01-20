@@ -189,7 +189,7 @@ bool SceneRenderer::InitMeshAnimations()
 
 bool SceneRenderer::InitBuffers()
 {
-	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(2048, 2048));
+	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(4096, 4096));
 	return m_ShadowBuffer != nullptr;
 }
 
@@ -369,8 +369,6 @@ void SceneRenderer::DrawShadowDepth()
 	if (m_ShadowBuffer == nullptr) return;
 	if (m_DepthShadowShader == nullptr) return;
 
-	glCullFace(GL_FRONT);
-
 	m_ShadowBuffer->Bind();
 	m_DepthShadowShader->Bind();
 
@@ -392,8 +390,6 @@ void SceneRenderer::DrawShadowDepth()
 
 	m_DepthShadowShader->UnBind();
 	m_ShadowBuffer->UnBind();
-
-	glCullFace(GL_BACK);
 }
 
 void SceneRenderer::DrawAllNodes(const bool& isDepth)
@@ -402,7 +398,7 @@ void SceneRenderer::DrawAllNodes(const bool& isDepth)
 		isDepth ? DrawDepthNode(i) : DrawNode(i);
 	
 	for (const auto& i : m_TransparentNodesList)
-		isDepth ? DrawDepthNode(i) : DrawNode(i);
+		isDepth ? DrawDepthNode(i, true) : DrawNode(i);
 }
 
 void SceneRenderer::BuildNodeLists(SceneNode* fromNode)
@@ -516,10 +512,13 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 	}
 }
 
-void SceneRenderer::DrawDepthNode(SceneNode* Node)
+void SceneRenderer::DrawDepthNode(SceneNode* Node, bool isTransparentNodes)
 {
 	if (Node != nullptr && Node->GetMesh())
 	{
+		if (isTransparentNodes)
+			glDisable(GL_CULL_FACE);
+
 		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
 
 		m_DepthShadowShader->SetMat4("modelMatrix", modelMatrix);
@@ -535,6 +534,10 @@ void SceneRenderer::DrawDepthNode(SceneNode* Node)
 		}
 		
 		Node->DepthDraw(m_DepthShadowShader.get());
+
+		if (isTransparentNodes)
+			glEnable(GL_CULL_FACE);
+
 		//Node->GetMesh()->Draw();
 
 		/*viewMatrix = m_Camera->GetViewMatrix();
