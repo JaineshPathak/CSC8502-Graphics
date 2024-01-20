@@ -1,6 +1,5 @@
 #pragma once
-#include "..\nclgl\SceneNode.h"
-#include "..\nclgl\Light.h"
+#include <nclgl/SceneNode.h>
 
 class LightPointNode : public SceneNode
 {
@@ -8,8 +7,6 @@ public:
 	LightPointNode();
 	LightPointNode(const Vector4& lightColour, const Vector4& lightSpecularColour, const float& lightRadius, const float& lightIntensity);
 	~LightPointNode();
-
-	LIGHT_TYPE GetLightType() const { return m_LightType; }
 
 	Vector3 GetLightPosition() const;
 	void SetPosition(const Vector3& pos);
@@ -26,13 +23,7 @@ public:
 	Vector4 GetLightSpecularColour() const { return m_PointLightColour; }
 	void SetLightSpecularColour(const Vector4& lightSpecularColour);
 
-	virtual void Update(float dt) override;
-
 protected:
-	Light m_PointLight;
-	LIGHT_TYPE m_LightType = TYPE_POINTLIGHT;
-
-	//Point Lights Properties
 	float m_PointLightRadius;
 	float m_PointLightIntensity;
 	Vector4 m_PointLightColour;

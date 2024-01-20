@@ -221,7 +221,8 @@ bool SceneRenderer::InitLights()
 
 				m_PointLightsList.emplace_back(pointLight);
 
-				if (m_TerrainNode) m_TerrainNode->AddChild(pointLight.get());
+				if (m_TerrainNode) 
+					m_TerrainNode->AddChild(pointLight.get());
 			}
 
 			m_PointLightsNum = (int)m_PointLightsList.size();

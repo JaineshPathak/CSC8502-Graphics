@@ -31,11 +31,11 @@ SceneNode::SceneNode(const std::string& name)
 
 SceneNode::~SceneNode()
 {
-	for (size_t i = 0; i < children.size(); i++)
+	/*for (size_t i = 0; i < children.size(); i++)
 	{
 		if(children[i] != nullptr)
 			delete children[i];
-	}
+	}*/
 }
 
 void SceneNode::AddChild(SceneNode* s)
