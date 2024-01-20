@@ -78,5 +78,8 @@ void LightPointNode::SetLightSpecularColour(const Vector4& lightSpecularColour)
 
 void LightPointNode::Update(float dt)
 {
+	//SetPosition(modelPosition);
+	SceneNode::Update(dt);
+
 	m_PointLight.SetPosition(GetWorldTransform().GetPositionVector());
 }

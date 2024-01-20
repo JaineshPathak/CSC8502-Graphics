@@ -48,9 +48,6 @@ SceneRenderer::SceneRenderer(Window& parent) : OGLRenderer(parent), m_AssetManag
 
 	if (m_TerrainNode)
 	{
-		for (const auto& pointLight : m_PointLightsList)
-			m_TerrainNode->AddChild(pointLight.get());
-
 		m_TerrainNode->SetModelPosition(m_TerrainNode->GetHeightmapSize() * Vector3(-0.5f, -0.5f, -0.5f));
 		m_TerrainNode->SetTransform(Matrix4::Translation(m_TerrainNode->GetModelPosition()) * m_TerrainNode->GetRotationMatrix() * Matrix4::Scale(m_TerrainNode->GetModelScale()));
 	}
@@ -81,7 +78,7 @@ void SceneRenderer::RenderScene()
 	DrawAllNodes();
 	ClearNodeLists();
 
-	DrawQuadScreen();
+	//DrawQuadScreen();
 	DrawImGui();
 }
 
@@ -111,9 +108,9 @@ bool SceneRenderer::Initialize()
 	if (!InitMeshMaterials()) return false;
 	if (!InitMeshAnimations()) return false;
 	if (!InitBuffers()) return false;
-	if (!InitLights()) return false;
 	if (!InitSkybox()) return false;
 	if (!InitSceneNodes()) return false;
+	if (!InitLights()) return false;
 	if (!InitGLParameters()) return false;
 
 	return true;
@@ -203,8 +200,32 @@ bool SceneRenderer::InitLights()
 
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
 	{
-		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *m_DirLight, m_PointLightsList);		
-		m_PointLightsNum = (int)m_PointLightsList.size();		
+		//FileHandler::ReadLightDataFile(LIGHTSDATAFILE, *m_DirLight, m_PointLightsList);
+		std::vector<float> pLightIntensityV;
+		std::vector<float> pLightRadiusV;
+		std::vector<Vector3> pLightPosV;
+		std::vector<Vector4> pLightColorV;
+		std::vector<Vector4> pLightSpecColorV;
+
+		FileHandler::ReadLightDataFile(LIGHTSDATAFILE, pLightIntensityV, pLightRadiusV, pLightPosV, pLightColorV, pLightSpecColorV);
+		if (pLightIntensityV.size() > 0)
+		{
+			for (int i = 0; i < pLightIntensityV.size(); i++)
+			{
+				std::shared_ptr<LightPointNode> pointLight = std::shared_ptr<LightPointNode>(new LightPointNode());
+				pointLight->SetLightRadius(pLightRadiusV[i]);
+				pointLight->SetLightIntensity(pLightIntensityV[i]);
+				pointLight->SetPosition(pLightPosV[i]);
+				pointLight->SetLightColour(pLightColorV[i]);
+				pointLight->SetLightSpecularColour(pLightSpecColorV[i]);
+
+				m_PointLightsList.emplace_back(pointLight);
+
+				if (m_TerrainNode) m_TerrainNode->AddChild(pointLight.get());
+			}
+
+			m_PointLightsNum = (int)m_PointLightsList.size();
+		}		
 	}
 
 	return true;
@@ -241,34 +262,36 @@ bool SceneRenderer::InitSceneNodes()
 {
 	//Spawn the Root Nodes
 	m_TerrainNode = std::shared_ptr<TerrainNode>(new TerrainNode());
-	m_RootNode = m_TerrainNode;
+
+	m_RootNode = std::shared_ptr<SceneNode>(new SceneNode("Root"));
+	m_RootNode->AddChild(m_TerrainNode.get());
 
 	SceneNodeProperties rocksProperties("Rock", ROCK2FILE, m_AssetManager.GetMesh("Rocks01"), m_AssetManager.GetMeshMaterial("Rocks01Mat"), false);
-	rocksProperties.nodeParent = m_RootNode;
+	rocksProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties treesProperties("Tree", TREESFILE, m_AssetManager.GetMesh("Tree01"), m_AssetManager.GetMeshMaterial("Tree01Mat"), true);
-	treesProperties.nodeParent = m_RootNode;
+	treesProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties castleProperties("Castle", CASTLEFILE, m_AssetManager.GetMesh("CastleMain"), m_AssetManager.GetMeshMaterial("CastleMainMat"), false);
-	castleProperties.nodeParent = m_RootNode;
+	castleProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties castlePillarProperties("CastlePillar", CASTLEPILLARFILE, m_AssetManager.GetMesh("CastlePillar"), m_AssetManager.GetMeshMaterial("CastlePillarMat"), false);
-	castlePillarProperties.nodeParent = m_RootNode;
+	castlePillarProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties castleArchProperties("CastleArch", CASTLEARCHFILE, m_AssetManager.GetMesh("CastleArch"), m_AssetManager.GetMeshMaterial("CastleArchMat"), false);
-	castleArchProperties.nodeParent = m_RootNode;
+	castleArchProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties castleBridgeProperties("CastleBridge", CASTLEBRIDGEFILE, m_AssetManager.GetMesh("CastleBridge"), m_AssetManager.GetMeshMaterial("CastleBridgeMat"), false);
-	castleBridgeProperties.nodeParent = m_RootNode;
+	castleBridgeProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties ruinsProperties("Ruins", RUINSFILE, m_AssetManager.GetMesh("Ruins"), m_AssetManager.GetMeshMaterial("RuinsMat"), false);
-	ruinsProperties.nodeParent = m_RootNode;
+	ruinsProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties crystalAProperties("CrystalA", CRYSTAL01FILE, m_AssetManager.GetMesh("Crystal01"), m_AssetManager.GetMeshMaterial("Crystal01Mat"), false);
-	crystalAProperties.nodeParent = m_RootNode;
+	crystalAProperties.nodeParent = m_TerrainNode;
 
 	SceneNodeProperties crystalBProperties("CrystalB", CRYSTAL02FILE, m_AssetManager.GetMesh("Crystal02"), m_AssetManager.GetMeshMaterial("Crystal02Mat"), false);
-	crystalBProperties.nodeParent = m_RootNode;
+	crystalBProperties.nodeParent = m_TerrainNode;
 
 	SpawnSceneNode(rocksProperties);
 	SpawnSceneNode(treesProperties);
@@ -281,10 +304,10 @@ bool SceneRenderer::InitSceneNodes()
 	SpawnSceneNode(crystalBProperties);
 
 	AnimSceneNodeProperties monsterDudeProp("MonsterDude", MONSTERDUDEFILE, m_AssetManager.GetMesh("MonsterDude"), m_AssetManager.GetMeshMaterial("MonsterDudeMat"), m_AssetManager.GetMeshAnimation("MonsterDudeAnim"), false);
-	monsterDudeProp.nodeParent = m_RootNode;
+	monsterDudeProp.nodeParent = m_TerrainNode;
 
 	AnimSceneNodeProperties monsterCrabProp("MonsterCrab", MONSTERCRABFILE, m_AssetManager.GetMesh("MonsterCrab"), m_AssetManager.GetMeshMaterial("MonsterCrabMat"), m_AssetManager.GetMeshAnimation("MonsterCrabAnim"), false);
-	monsterCrabProp.nodeParent = m_RootNode;
+	monsterCrabProp.nodeParent = m_TerrainNode;
 
 	SpawnSceneNode(monsterDudeProp);
 	SpawnSceneNode(monsterCrabProp);
@@ -423,6 +446,16 @@ void SceneRenderer::DrawImGui()
 		Vector3 lightDir = m_DirLight->GetLightDir();
 		if (ImGui::DragFloat3("Dir", (float*)&lightDir, 0.01f, -1.0f, 1.0f))
 			m_DirLight->SetLightDir(lightDir);
+	}
+
+	if (ImGui::CollapsingHeader("Terrain"))
+	{
+		Vector3 terrainPos = m_TerrainNode->GetModelPosition();
+		if (ImGui::DragFloat3("Pos", (float*)&terrainPos))
+		{
+			m_TerrainNode->SetModelPosition(terrainPos);
+			m_TerrainNode->SetTransform(Matrix4::Translation(m_TerrainNode->GetModelPosition()) * m_TerrainNode->GetRotationMatrix() * Matrix4::Scale(m_TerrainNode->GetModelScale()));
+		}
 	}
 
 	ImGui::Render();

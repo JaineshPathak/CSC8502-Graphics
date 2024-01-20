@@ -12,7 +12,7 @@ public:
 
 	SceneNode(Mesh* m = NULL, Vector4 col = Vector4());
 	SceneNode(const std::string& name);
-	virtual ~SceneNode(void);
+	virtual ~SceneNode();
 
 	void SetTransform(const Matrix4& matrix) { localTransform = matrix; }
 	const Matrix4& GetTransform() const { return localTransform; }

@@ -29,10 +29,13 @@ SceneNode::SceneNode(const std::string& name)
 	texture = 0;
 }
 
-SceneNode::~SceneNode(void)
+SceneNode::~SceneNode()
 {
 	for (size_t i = 0; i < children.size(); i++)
-		delete children[i];
+	{
+		if(children[i] != nullptr)
+			delete children[i];
+	}
 }
 
 void SceneNode::AddChild(SceneNode* s)

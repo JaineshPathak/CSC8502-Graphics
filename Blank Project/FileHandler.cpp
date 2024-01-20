@@ -14,9 +14,9 @@ void FileHandler::SavePropDataToFile(const std::string& fileName, const std::vec
 	std::ofstream fileWriter(fileName, std::ios::out);
 	fileWriter.exceptions(std::ofstream::badbit | std::ofstream::failbit);
 	
-	int PropPosSize = PropPos.size();
-	int PropRotSize = PropRot.size();
-	int PropScaleSize = PropScale.size();
+	int PropPosSize = (int)PropPos.size();
+	int PropRotSize = (int)PropRot.size();
+	int PropScaleSize = (int)PropScale.size();
 
 	fileWriter << PropPosSize << std::endl;
 	for (int i = 0; i < PropPosSize; i++)
@@ -430,6 +430,114 @@ void FileHandler::ReadLightDataFile(const std::string& fileName, DirectionalLigh
 		pointLight->SetLightIntensity(pLightIntensity[i]);
 		pointLight->SetPosition(pLightPos[i]);
 		pointLightsData.push_back(pointLight);
+	}
+
+	fileReader.close();
+}
+
+void FileHandler::ReadLightDataFile(const std::string& fileName, std::vector<float>& pLightIntensityV, std::vector<float>& pLightRadiusV, std::vector<Vector3>& pLightPosV, std::vector<Vector4>& pLightColorV, std::vector<Vector4>& pLightSpecColorV)
+{
+	std::ifstream fileReader(fileName, std::ios::in);
+	fileReader.exceptions(std::ifstream::badbit);
+
+	std::string line;
+
+	Vector3 dirLightDir;
+	fileReader >> (float)dirLightDir.x;
+	fileReader >> (float)dirLightDir.y;
+	fileReader >> (float)dirLightDir.z;
+	//dirLight.SetLightDir(dirLightDir);
+
+	Vector4 dirLightColour;
+	fileReader >> (float)dirLightColour.x;
+	fileReader >> (float)dirLightColour.y;
+	fileReader >> (float)dirLightColour.z;
+	fileReader >> (float)dirLightColour.w;
+
+	float dirLightIntensity;
+	fileReader >> (float)dirLightIntensity;
+
+	//==================================================================
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightPos")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector3 lightPos;
+			ss >> (float)lightPos.x;
+			ss >> (float)lightPos.y;
+			ss >> (float)lightPos.z;
+			pLightPosV.emplace_back(lightPos);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightCol;
+			ss >> (float)lightCol.x;
+			ss >> (float)lightCol.y;
+			ss >> (float)lightCol.z;
+			ss >> (float)lightCol.w;
+			pLightColorV.emplace_back(lightCol);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightSpecularColour")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			Vector4 lightColS;
+			ss >> (float)lightColS.x;
+			ss >> (float)lightColS.y;
+			ss >> (float)lightColS.z;
+			ss >> (float)lightColS.w;
+			pLightSpecColorV.emplace_back(lightColS);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightRadius")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightR;
+			ss >> (float)lightR;
+			pLightRadiusV.emplace_back(lightR);
+		}
+	}
+
+
+	while (std::getline(fileReader, line, '\n'))
+	{
+		if (line == "EndPointLightIntensity")
+			break;
+
+		std::stringstream ss(line);
+		if (line != "")
+		{
+			float lightI;
+			ss >> (float)lightI;
+			pLightIntensityV.emplace_back(lightI);
+		}
 	}
 
 	fileReader.close();
