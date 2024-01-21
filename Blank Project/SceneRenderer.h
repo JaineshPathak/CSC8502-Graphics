@@ -118,6 +118,7 @@ private:
 	std::shared_ptr<Shader> m_SkyboxShader;
 	std::shared_ptr<Shader> m_DepthShadowShader;
 	std::shared_ptr<Shader> m_QuadShader;
+	std::shared_ptr<Shader> m_ReflectShader;
 
 	Matrix4 m_LightSpaceMatrix;
 

@@ -154,6 +154,7 @@
     <ClCompile Include="TerrainHeightmap.cpp" />
     <ClCompile Include="TerrainNode.cpp" />
     <ClCompile Include="TreePropNode.cpp" />
+    <ClCompile Include="WaterPropNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AnimMeshNode.h" />
@@ -168,6 +169,7 @@
     <ClInclude Include="TerrainHeightmap.h" />
     <ClInclude Include="TerrainNode.h" />
     <ClInclude Include="TreePropNode.h" />
+    <ClInclude Include="WaterPropNode.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Shaders\Coursework\Terrain\CWTerrainFragv2.glsl" />

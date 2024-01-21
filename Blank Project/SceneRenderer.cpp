@@ -6,6 +6,7 @@
 #include "TreePropNode.h"
 #include "AnimMeshNode.h"
 #include "LightPointNode.h"
+#include "WaterPropNode.h"
 #include "Skybox.h"
 #include "ShadowBuffer.h"
 
@@ -133,13 +134,15 @@ bool SceneRenderer::InitShaders()
 	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", "skyboxVertex.glsl", "skyboxFragment.glsl");
 	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthShadowBufferFrag.glsl");
 	m_QuadShader = m_AssetManager.GetShader("QuadDepthShader", "DepthQuadBufferVert.glsl", "DepthQuadBufferFrag.glsl");
+	m_ReflectShader = m_AssetManager.GetShader("WaterShader", SHADERDIRCOURSETERRAIN"CWReflectVertex.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragment.glsl");
 
 	return  m_TerrainShader->LoadSuccess() && 
 			m_DiffuseShader->LoadSuccess() && 
 			m_DiffuseAnimShader->LoadSuccess() && 
 			m_SkyboxShader->LoadSuccess() &&
 			m_DepthShadowShader->LoadSuccess() &&
-			m_QuadShader->LoadSuccess();
+			m_QuadShader->LoadSuccess() &&
+			m_ReflectShader->LoadSuccess();
 }
 
 bool SceneRenderer::InitMeshes()
@@ -313,6 +316,19 @@ bool SceneRenderer::InitSceneNodes()
 	SpawnSceneNode(monsterDudeProp);
 	SpawnSceneNode(monsterCrabProp);
 
+	//Water Prop
+	WaterPropNode* waterPropNode = new WaterPropNode();
+	if (waterPropNode && m_TerrainNode)
+	{
+		waterPropNode->SetSkyboxTexID(m_Skybox->GetSkyboxCube());
+		waterPropNode->SetModelPosition(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 0.2355f, 0.5f));
+		waterPropNode->SetModelRotation(Vector3(90.0f, 0, 0));
+		waterPropNode->SetModelScale(Vector3(60.0f, 60.0f, 60.0f));
+		waterPropNode->SetTransform(Matrix4::Translation(waterPropNode->GetModelPosition()) * Matrix4::Scale(waterPropNode->GetModelScale()) * waterPropNode->GetRotationMatrix());
+		
+		m_TerrainNode->AddChild(waterPropNode);
+	}
+
 	return true;
 }
 
@@ -398,7 +414,7 @@ void SceneRenderer::DrawAllNodes(const bool& isDepth)
 		isDepth ? DrawDepthNode(i) : DrawNode(i);
 	
 	for (const auto& i : m_TransparentNodesList)
-		isDepth ? DrawDepthNode(i, true) : DrawNode(i);
+		isDepth ? DrawDepthNode(i) : DrawNode(i);
 }
 
 void SceneRenderer::BuildNodeLists(SceneNode* fromNode)
