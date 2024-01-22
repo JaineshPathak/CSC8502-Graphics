@@ -39,7 +39,6 @@ void WaterPropNode::Draw(const OGLRenderer& r)
 	shader->SetTextureCubeMap("cubeTex", m_SkyboxTexID, 2);
 	shader->SetTexture("shadowTex", SceneRenderer::Get()->GetDepthTexture(), 3);
 
-
 	mesh->Draw();
 
 	glEnable(GL_CULL_FACE);

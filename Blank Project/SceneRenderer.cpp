@@ -79,7 +79,7 @@ void SceneRenderer::RenderScene()
 	DrawAllNodes();
 	ClearNodeLists();
 
-	//DrawQuadScreen();
+	DrawQuadScreen();
 	DrawImGui();
 }
 
@@ -90,7 +90,10 @@ void SceneRenderer::UpdateScene(float DeltaTime)
 		m_Camera->UpdateCamera(DeltaTime);
 		m_Camera->BuildViewMatrix();
 	}
+
 	if (m_RootNode) m_RootNode->Update(DeltaTime);
+
+	if (m_ShadowBuffer) m_ShadowBuffer->Update(DeltaTime);
 
 	if (Window::GetKeyboard()->KeyHeld(KeyboardKeys::KEYBOARD_UP))
 		m_OrthographicFOV += DeltaTime;
@@ -393,11 +396,36 @@ void SceneRenderer::DrawShadowDepth()
 	float right_plane = 100.0f * m_OrthographicFOV;
 	float top_plane = 100.0f * m_OrthographicFOV;
 	float bottom_plane = -100.0f * m_OrthographicFOV;
-	Matrix4 lightProjection = Matrix4::Orthographic(near_plane, far_plane, right_plane, left_plane, top_plane, bottom_plane);
+	m_LightSpaceProj = Matrix4::Orthographic(near_plane, far_plane, right_plane, left_plane, top_plane, bottom_plane);
+	m_LightSpaceView = Matrix4::BuildViewMatrix(-m_DirLight->GetLightDir(), Vector3(0, 0, 0), Vector3(0.0f, 1.0f, 0.0f));
 	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_Camera->getPosition() + m_Camera->GetForward(), Vector3(0.0f, 1.0f, 0.0f));
-	Matrix4 lightView = Matrix4::BuildViewMatrix(-m_DirLight->GetLightDir(), Vector3(0, 0, 0), Vector3(0.0f, 1.0f, 0.0f));
 	//Matrix4 lightView = Matrix4::BuildViewMatrix(m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 0.5f, 0.5f), m_DirLight->GetLightDir(), Vector3(0.0f, 1.0f, 0.0f));
-	m_LightSpaceMatrix = lightProjection * lightView;
+
+	//Creating Ortho Projection based on Shadow box dimensions
+	/*m_LightSpaceProj.ToIdentity();
+	m_LightSpaceProj.values[0] = 2.0f / m_ShadowBuffer->GetBoxWidth();
+	m_LightSpaceProj.values[5] = 2.0f / m_ShadowBuffer->GetBoxHeight();
+	m_LightSpaceProj.values[10] = -2.0f / m_ShadowBuffer->GetBoxLength();
+	m_LightSpaceProj.values[15] = 1.0f;
+
+	//Update the light's view matrix
+	const Vector3 boxCenter = m_ShadowBuffer->GetBoxCenter();
+	const Vector3 lightDir = m_DirLight->GetLightDir();
+	lightDir.Normalised();
+	
+	float pitch = std::asinf(-lightDir.y);
+	pitch = RadToDeg(pitch);
+	float yaw = std::atan2f(lightDir.x, lightDir.z);
+	yaw = RadToDeg(yaw);
+	//yaw = lightDir.z > 0 ? yaw - 180.0f : yaw;
+	//float pitch = (float)std::acos(lightDir2D);
+	//float yaw = RadToDeg(std::atan(lightDir.x / lightDir.z));
+	//yaw = lightDir.z > 0 ? yaw - 180.0f : yaw;
+	
+	//m_LightSpaceView = Matrix4::Rotation(-pitch, Vector3(1.0f, 0.0f, 0.0f)) * Matrix4::Rotation(-yaw, Vector3(0.0f, 1.0f, 0.0f)) * Matrix4::Translation(-boxCenter);
+	//m_LightSpaceView = Matrix4::BuildViewMatrix(-lightDir, boxCenter + lightDir, Vector3(0, 1, 0));*/
+
+	m_LightSpaceMatrix = m_LightSpaceProj * m_LightSpaceView;
 
 	m_DepthShadowShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
 

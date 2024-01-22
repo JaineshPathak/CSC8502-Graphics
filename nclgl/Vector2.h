@@ -39,6 +39,10 @@ public:
 		return o;
 	}
 
+	float Length() const {
+		return sqrt((x * x) + (y * y));
+	}
+
 	inline Vector2  operator-(const Vector2  &a) const{
 		return Vector2(x - a.x,y - a.y);
 	}

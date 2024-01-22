@@ -15,8 +15,9 @@ public:
 		camRotation.y = 0.0f;
 		camRotation.z = 0.0f;
 
-		camFront = Vector3(0.0f, 0.0f, -1.0f);
+		camForward = Vector3(0.0f, 0.0f, -1.0f);
 		camUp = Vector3(0.0f, 1.0f, 0.0f);
+		camRight = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
 	Camera(float _pitch, float _yaw, float _roll, Vector3 _position)
@@ -29,8 +30,9 @@ public:
 		camRotation.y = _yaw;
 		camRotation.z = _roll;
 
-		camFront = Vector3(0.0f, 0.0f, -1.0f);
+		camForward = Vector3(0.0f, 0.0f, -1.0f);
 		camUp = Vector3(0.0f, 1.0f, 0.0f);
+		camRight = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
 	Camera(Vector3 _position, Vector3 _rotation)
@@ -40,8 +42,9 @@ public:
 		camPosition = _position;
 		camRotation = _rotation;
 
-		camFront = Vector3(0.0f, 0.0f, -1.0f);
+		camForward = Vector3(0.0f, 0.0f, -1.0f);
 		camUp = Vector3(0.0f, 1.0f, 0.0f);
+		camRight = Vector3(1.0f, 0.0f, 0.0f);
 	}
 
 	~Camera(void) {}
@@ -72,9 +75,23 @@ public:
 	float GetRoll() const { return camRotation.z; }
 	void SetRoll(float val) { camRotation.z = val; }
 
-	Vector3 GetForward() const { return camFront; }
+	float GetFOV() const { return m_FOV; }
+	void SetFOV(const float& val);
+
+	float GetNear() const { return m_Near; }
+	void SetNear(const float& val);
+
+	float GetFar() const { return m_Far; }
+	void SetFar(const float& val);
+
+	float GetScreenWidth() const { return m_ScreenWidth; }
+	float GetScreenHeight() const { return m_ScreenHeight; }
+
+	Vector3 GetForward() const { return camForward; }
 	Vector3 GetRight() const { return camRight; }
 	Vector3 GetUp() const { return camUp; }
+
+	Matrix4 GetRotationMatrix() const { return camRotationMat; }
 
 protected:
 	//float pitch;
@@ -82,13 +99,18 @@ protected:
 	float currentSpeed;
 	float defaultSpeed = 30.0f;
 
+	float m_FOV;
+	float m_Near, m_Far;
+	float m_ScreenWidth, m_ScreenHeight;
+
 	Vector3 camPosition;
 	Vector3 camRotation;
 
-	Vector3 camFront;
+	Vector3 camForward;
 	Vector3 camUp;
 	Vector3 camRight;
 
 	Matrix4 camProjMat;
 	Matrix4 camViewMat;
+	Matrix4 camRotationMat;
 };

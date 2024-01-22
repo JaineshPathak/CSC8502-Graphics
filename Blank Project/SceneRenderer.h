@@ -120,6 +120,8 @@ private:
 	std::shared_ptr<Shader> m_QuadShader;
 	std::shared_ptr<Shader> m_ReflectShader;
 
+	Matrix4 m_LightSpaceProj;
+	Matrix4 m_LightSpaceView;
 	Matrix4 m_LightSpaceMatrix;
 
 	float m_OrthographicFOV;
