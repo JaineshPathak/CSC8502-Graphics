@@ -14,7 +14,7 @@ public:
 	SceneNode(const std::string& name);
 	virtual ~SceneNode();
 
-	void SetTransform(const Matrix4& matrix) { localTransform = matrix; }
+	virtual void SetTransform(const Matrix4& matrix) { localTransform = matrix; }
 	const Matrix4& GetTransform() const { return localTransform; }
 	const Matrix4& GetWorldTransform() const { return worldTransform; }
 

@@ -79,7 +79,7 @@ void SceneRenderer::RenderScene()
 	DrawAllNodes();
 	ClearNodeLists();
 
-	DrawQuadScreen();
+	//DrawQuadScreen();
 	DrawImGui();
 }
 
@@ -152,6 +152,8 @@ bool SceneRenderer::InitMeshes()
 {
 	m_QuadMesh = std::shared_ptr<Mesh>(Mesh::GenerateQuad());
 	m_QuadMiniMesh = std::shared_ptr<Mesh>(Mesh::GenerateQuadMini());
+	m_CubeMesh = std::shared_ptr<Mesh>(Mesh::GenerateCube());
+	m_PointMesh = std::shared_ptr<Mesh>(Mesh::GeneratePoint());
 
 	m_AssetManager.GetMesh("Rocks01", MESHDIRCOURSE"Rocks/Mesh_Rock5D.msh");
 	m_AssetManager.GetMesh("Tree01", MESHDIRCOURSE"Trees/Tree_01.msh");

@@ -96,6 +96,7 @@ private:
 	std::shared_ptr<Mesh> m_CubeMesh;
 	std::shared_ptr<Mesh> m_QuadMesh;
 	std::shared_ptr<Mesh> m_QuadMiniMesh;
+	std::shared_ptr<Mesh> m_PointMesh;
 
 	std::shared_ptr<Camera> m_Camera;
 
@@ -131,5 +132,7 @@ public:
 	inline std::shared_ptr<Camera> GetCamera() const { return m_Camera; }
 
 	inline std::shared_ptr<Mesh> GetQuadMesh() const { return m_QuadMesh; }
+	inline std::shared_ptr<Mesh> GetCubeMesh() const { return m_CubeMesh; }
+	inline std::shared_ptr<Mesh> GetPointMesh() const { return m_PointMesh; }
 	unsigned int GetDepthTexture() const;
 };

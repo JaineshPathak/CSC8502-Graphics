@@ -30,6 +30,7 @@ protected:
 	bool m_InitSuccess;
 
 	std::shared_ptr<Shader> m_TerrainShader;
+
 	GLuint m_TerrainTextureSplatmap;
 	GLuint m_TerrainTextureGrass;
 	GLuint m_TerrainTextureGrassBump;

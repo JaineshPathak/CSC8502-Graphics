@@ -66,6 +66,40 @@ void Mesh::DrawSubMesh(int i) {
 	glBindVertexArray(0);
 }
 
+void Mesh::DrawInstanced(const int& count)
+{
+	glBindVertexArray(arrayObject);
+	
+	if (bufferObject[INDEX_BUFFER])
+		glDrawElementsInstanced(type, numIndices, GL_UNSIGNED_INT, 0, count);
+	else
+		glDrawArraysInstanced(type, 0, numVertices, count);
+	
+	glBindVertexArray(0);
+}
+
+Mesh* Mesh::GeneratePoint()
+{
+	Mesh* m = new Mesh();
+	m->type = GL_POINTS;
+	m->numVertices = 1;
+
+	m->vertices = new Vector3[m->numVertices];
+	m->vertices[0] = Vector3(0.0f, 0.0f, 0.0f);
+
+	m->colours = new Vector4[m->numVertices];
+	m->colours[0] = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+
+	m->textureCoords = new Vector2[m->numVertices];
+	m->textureCoords[0] = Vector2(0.0f, 0.0f);
+
+	m->normals = new Vector3[m->numVertices];
+	m->normals[0] = Vector3(0.0f, 1.0f, 0.0f);
+
+	m->BufferData();
+	return m;
+}
+
 Mesh* Mesh::GenerateTriangle()
 {
 	Mesh* m = new Mesh();

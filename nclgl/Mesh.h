@@ -51,7 +51,9 @@ public:
 
 	void Draw();
 	void DrawSubMesh(int i);
+	void DrawInstanced(const int& count);
 
+	static Mesh* GeneratePoint();
 	static Mesh* GenerateTriangle();
 	static Mesh* GenerateQuad();
 	static Mesh* GenerateQuadMini();
@@ -71,7 +73,6 @@ public:
 		return (unsigned int)jointNames.size();
 	}
 
-
 	int GetIndexForJoint(const std::string& name) const;
 	int GetParentForJoint(const std::string& name) const;
 	int GetParentForJoint(int i) const;
@@ -84,7 +85,7 @@ public:
 		return inverseBindPose;
 	}
 
-	int		GetSubMeshCount() const {
+	int	GetSubMeshCount() const {
 		return (int)meshLayers.size(); 
 	}
 
@@ -97,6 +98,11 @@ public:
 
 	void GenerateTangents();
 	Vector4 GenerateTangent(int a, int b, int c);
+
+	unsigned int GetVerticesCount() const { return numVertices; }
+	Vector3* GetVertices() const { return vertices; }
+
+	unsigned int GetVertexArrayObject() const { return arrayObject; }
 
 protected:
 	void	BufferData();
