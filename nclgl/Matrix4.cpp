@@ -133,6 +133,29 @@ Matrix4 Matrix4::Rotation(float degrees, const Vector3 &inaxis)	 {
 	return m;
 }
 
+Matrix4 Matrix4::RotationByDirection(const Vector3& dir, const Vector3& up)
+{
+	Vector3 right = Vector3::Cross(dir, up);
+	Vector3 forward = Vector3::Cross(right, dir);
+
+	Matrix4 m;
+	m.ToIdentity();
+
+	m.values[0] = right.x;
+	m.values[1] = right.y;
+	m.values[2] = right.z;
+
+	m.values[4] = dir.x;
+	m.values[5] = dir.y;
+	m.values[6] = dir.z;
+
+	m.values[8] = forward.x;
+	m.values[9] = forward.y;
+	m.values[10] = forward.z;
+
+	return m;
+}
+
 Matrix4 Matrix4::Scale( const Vector3 &scale )	{
 	Matrix4 m;
 

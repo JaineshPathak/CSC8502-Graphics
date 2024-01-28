@@ -49,6 +49,8 @@ public:
 	//Analogous to glRotatef
 	static Matrix4 Rotation(float degrees, const Vector3 &axis);
 
+	static Matrix4 RotationByDirection(const Vector3& dir, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
+
 	//Creates a scaling matrix (puts the 'scale' vector down the diagonal)
 	//Analogous to glScalef
 	static Matrix4 Scale(const Vector3 &scale);

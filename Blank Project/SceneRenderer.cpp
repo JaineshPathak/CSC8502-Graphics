@@ -528,7 +528,7 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 
 		nodeShader->SetVector3("lightDir", m_DirLight->GetLightDir());
 		nodeShader->SetVector4("lightDirColour", m_DirLight->GetColour());
-		nodeShader->SetFloat("lightDirIntensity", 1.0f);
+		nodeShader->SetFloat("lightDirIntensity", m_DirLight->GetIntensity());
 
 		nodeShader->SetInt("numPointLights", m_PointLightsNum);
 		if (m_PointLightsNum > 0)

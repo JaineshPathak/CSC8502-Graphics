@@ -101,6 +101,7 @@ public:
 
 	unsigned int GetVerticesCount() const { return numVertices; }
 	Vector3* GetVertices() const { return vertices; }
+	Vector3* GetNormals() const { return normals; }
 
 	unsigned int GetVertexArrayObject() const { return arrayObject; }
 

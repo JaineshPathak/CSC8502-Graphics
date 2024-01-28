@@ -16,13 +16,13 @@ public:
 
 	Shader* GetTerrainShader() { return m_TerrainShader.get(); }
 
-	GLuint GetTerrainTextureSplatmap() { return m_TerrainTextureSplatmap; }
-	GLuint GetTerrainTextureGrass() { return m_TerrainTextureGrass; }
-	GLuint GetTerrainTextureGrassBump() { return m_TerrainTextureGrassBump; }
-	GLuint GetTerrainTextureRocks() { return m_TerrainTextureRocks; }
-	GLuint GetTerrainTextureRocksBump() { return m_TerrainTextureRocksBump; }
-	GLuint GetTerrainTextureGround() { return m_TerrainTextureGround; }
-	GLuint GetTerrainTextureGroundBump() { return m_TerrainTextureGroundBump; }
+	unsigned int GetTerrainTextureSplatmap() { return m_TerrainTextureSplatmap; }
+	unsigned int GetTerrainTextureGrass() { return m_TerrainTextureGrass; }
+	unsigned int GetTerrainTextureGrassBump() { return m_TerrainTextureGrassBump; }
+	unsigned int GetTerrainTextureRocks() { return m_TerrainTextureRocks; }
+	unsigned int GetTerrainTextureRocksBump() { return m_TerrainTextureRocksBump; }
+	unsigned int GetTerrainTextureGround() { return m_TerrainTextureGround; }
+	unsigned int GetTerrainTextureGroundBump() { return m_TerrainTextureGroundBump; }
 
 	bool InitSuccess() { return m_InitSuccess; }
 
@@ -31,11 +31,11 @@ protected:
 
 	std::shared_ptr<Shader> m_TerrainShader;
 
-	GLuint m_TerrainTextureSplatmap;
-	GLuint m_TerrainTextureGrass;
-	GLuint m_TerrainTextureGrassBump;
-	GLuint m_TerrainTextureRocks;
-	GLuint m_TerrainTextureRocksBump;
-	GLuint m_TerrainTextureGround;
-	GLuint m_TerrainTextureGroundBump;
+	unsigned int m_TerrainTextureSplatmap;
+	unsigned int m_TerrainTextureGrass;
+	unsigned int m_TerrainTextureGrassBump;
+	unsigned int m_TerrainTextureRocks;
+	unsigned int m_TerrainTextureRocksBump;
+	unsigned int m_TerrainTextureGround;
+	unsigned int m_TerrainTextureGroundBump;
 };

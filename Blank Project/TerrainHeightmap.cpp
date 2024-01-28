@@ -4,7 +4,14 @@
 #include <nclgl/Shader.h>
 #include "AssetManager.h"
 
-TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWidth, float vertexScaleLength, float texturingScale, float extraHeight)
+TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWidth, float vertexScaleLength, float texturingScale, float extraHeight):
+	m_TerrainTextureSplatmap(-1),
+	m_TerrainTextureGrass(-1),
+	m_TerrainTextureGrassBump(-1),
+	m_TerrainTextureRocks(-1),
+	m_TerrainTextureRocksBump(-1),
+	m_TerrainTextureGround(-1),
+	m_TerrainTextureGroundBump(-1)
 {
 	int iWidth, iHeight, iChans;
 	unsigned char* data = SOIL_load_image(name.c_str(), &iWidth, &iHeight, &iChans, 1);

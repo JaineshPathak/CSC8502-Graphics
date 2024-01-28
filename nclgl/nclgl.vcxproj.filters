@@ -59,6 +59,7 @@
     <ClCompile Include="..\Third Party\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="UniformBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
@@ -138,6 +139,7 @@
       <Filter>imgui</Filter>
     </ClInclude>
     <ClInclude Include="DirectionalLight.h" />
+    <ClInclude Include="UniformBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GLAD">

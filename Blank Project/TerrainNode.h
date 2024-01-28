@@ -4,6 +4,8 @@
 #include "TerrainHeightmap.h"
 #include <memory>
 
+class LightPointNode;
+class DirectionalLight;
 class TerrainNode : public SceneNode
 {
 public:
@@ -21,13 +23,19 @@ public:
 
 private:
 	void UpdateGrassData();
+	void DrawGrass();
 
 protected:
 	std::shared_ptr<TerrainHeightmap> m_TerrainHMap;
 
+	std::shared_ptr<DirectionalLight> m_DirLight;
+	std::vector<std::shared_ptr<LightPointNode>> m_PointLightsList;
+
 	//Grasses Data
 	unsigned int m_GrassInstancedVBO;
+	unsigned int m_GrassTexID;
 	std::shared_ptr<Mesh> m_GrassPointMesh;
 	std::shared_ptr<Shader> m_GrassShader;
+	std::shared_ptr<Shader> m_NormalsShader;
 	std::vector<Matrix4> m_GrassModelMats;
 };

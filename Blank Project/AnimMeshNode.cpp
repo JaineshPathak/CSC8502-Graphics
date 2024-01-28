@@ -2,6 +2,8 @@
 #include "AssetManager.h"
 #include "SceneRenderer.h"
 
+#include <nclgl/Camera.h>
+
 AnimMeshNode::AnimMeshNode(Shader* shader, Mesh* mesh, MeshAnimation* anim, MeshMaterial* mat, const std::string& texPath)
 {
 	this->shader = shader;
@@ -50,14 +52,14 @@ void AnimMeshNode::CalcFrameMatrices()
 
 void AnimMeshNode::Update(float dt)
 {
+	SceneNode::Update(dt);
+
 	frameTime -= dt;
 	while (frameTime < 0.0f)
 	{
 		currentFrame = (currentFrame + 1) % MeshAnim->GetFrameCount();
 		frameTime += 1.0f / MeshAnim->GetFrameRate();
 	}
-
-	SceneNode::Update(dt);
 }
 
 void AnimMeshNode::Draw(const OGLRenderer& r)

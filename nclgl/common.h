@@ -20,6 +20,8 @@ _-_-_-_-_-_-_-""  ""
 #define NOMINMAX
 #endif // ! NOMINMAX
 
+#include <random>
+
 
 //It's pi(ish)...
 static const float		PI = 3.14159265358979323846f;
@@ -50,6 +52,15 @@ static inline float Clamp(const float& val, const float& min, const float& max)
 		return max;
 
 	return val;
+}
+
+static float RandF(const float& min, const float& max)
+{
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(min, max);
+
+	return (float)dis(gen);
 }
 
 #define SHADERDIR	"../Shaders/"

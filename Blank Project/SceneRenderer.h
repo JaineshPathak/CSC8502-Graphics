@@ -131,8 +131,12 @@ public:
 	inline std::shared_ptr<SceneNode> GetRootNode() const { return m_RootNode; }
 	inline std::shared_ptr<Camera> GetCamera() const { return m_Camera; }
 
+	inline std::shared_ptr<DirectionalLight> GetDirLight() const { return m_DirLight; }
+	inline std::vector<std::shared_ptr<LightPointNode>> GetPointLightsList() const { return m_PointLightsList; }
+
 	inline std::shared_ptr<Mesh> GetQuadMesh() const { return m_QuadMesh; }
 	inline std::shared_ptr<Mesh> GetCubeMesh() const { return m_CubeMesh; }
 	inline std::shared_ptr<Mesh> GetPointMesh() const { return m_PointMesh; }
+	
 	unsigned int GetDepthTexture() const;
 };
