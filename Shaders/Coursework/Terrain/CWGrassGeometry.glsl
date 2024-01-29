@@ -1,4 +1,4 @@
-#version 430 core
+#version 430
 
 layout (points) in;
 layout (triangle_strip, max_vertices = 12) out;
@@ -8,7 +8,17 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 projMatrix;
 	mat4 viewMatrix;
 };
-//layout(location = 1) uniform sampler2D diffuseSplatmapTex;
+
+struct EnvironmentData
+{
+	vec4 fogData;
+	vec4 fogColor;
+};
+
+layout(std140, binding = 3) uniform u_EnvironmentData
+{
+	EnvironmentData envData;
+};
 
 const float PI = 3.141592653589793;
 
@@ -22,7 +32,7 @@ in Vertex
 	vec2 texCoord;
 	vec3 normal;
     vec3 worldPos;
-	mat4 instanceMat;
+	mat4 instanceModelMat;
 } IN[];
 
 //This should same for Fragment Shader
@@ -32,6 +42,7 @@ out Vertex
     vec2 texCoord;
     vec3 normal;
     vec3 worldPos;
+    float visibility;
 } OUT;
 
 float random(vec2 st);
@@ -56,10 +67,6 @@ void CreateQuad(in vec4 basePosition, in mat4 crossModel)
     textCoords[2] = vec2(0.0, 1.0); // up left
     textCoords[3] = vec2(1.0, 1.0); // up right
 
-    OUT.colour = IN[0].colour;
-    OUT.normal = IN[0].normal; 
-    OUT.worldPos = IN[0].worldPos;
-
 //    vec3 normal = normalize(cross(vertexPosition[1].xyz - vertexPosition[0].xyz, vertexPosition[2].xyz - vertexPosition[0].xyz));
 //    mat3 normalMat = transpose(inverse(mat3(IN[0].instanceMat)));
 //    OUT.normal = normalize(normalMat * normalize(normal));
@@ -75,7 +82,7 @@ void CreateQuad(in vec4 basePosition, in mat4 crossModel)
             grass_size = 0.0f;*/
 
         //vertexPosition[i] *= grass_size;	         
-        gl_Position = projMatrix * viewMatrix * IN[0].instanceMat * (gl_in[0].gl_Position + crossModel * vertexPosition[i] * grass_size);
+        gl_Position = projMatrix * viewMatrix * IN[0].instanceModelMat * (gl_in[0].gl_Position + crossModel * vertexPosition[i] * grass_size);
         OUT.texCoord = textCoords[i];
 
         //grass_size = mix(0.0f, 1.5f, grassAmount);
@@ -99,6 +106,22 @@ void CreateGrass()
 
 void main()
 {
+    OUT.colour = IN[0].colour;
+    OUT.normal = IN[0].normal; 
+    OUT.worldPos = IN[0].worldPos;
+
+    bool fogEnabled = bool(envData.fogData.x);
+    if(fogEnabled)
+	{
+		float fogDensity = envData.fogData.y;
+		float fogGradient = envData.fogData.z;
+        vec4 posRelativeToCam = (viewMatrix * vec4(IN[0].worldPos, 1.0));
+
+		float distance = length(posRelativeToCam.xyz);
+		OUT.visibility = exp(-pow((distance * fogDensity), fogGradient));
+		OUT.visibility = clamp(OUT.visibility, 0.0, 1.0);
+	}
+
     grass_size = random(gl_in[0].gl_Position.xz) * (1.0f - c_min_size) + c_min_size;
 
     CreateGrass();

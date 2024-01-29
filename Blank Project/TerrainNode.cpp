@@ -8,6 +8,7 @@
 
 const std::size_t VEC4Size = sizeof(Vector4);
 const std::size_t MAT4Size = sizeof(Matrix4);
+const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
 
 TerrainNode::TerrainNode()
 {

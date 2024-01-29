@@ -64,6 +64,24 @@ struct DirectionalLightStruct
 	Vector4 lightColor;
 };
 
+struct EnvironmentDataStruct
+{
+	Vector4 fogData;	//x = Fog Enabled, y = Density, z = Gradient, 1.0
+	Vector4 fogColor;	//Color of Fog
+
+	EnvironmentDataStruct() :
+		fogData(Vector4(1.0f, 0.00015f, 1.5f, 1.0f)),
+		fogColor(Vector4())
+	{
+	}
+
+	EnvironmentDataStruct(const bool& fogEnabled, const float& fogDensity, const float& fogGradient, const Vector4 fogColor) :
+		fogData(Vector4((float)fogEnabled, fogDensity, fogGradient, 1.0f)),
+		fogColor(fogColor)
+	{
+	}
+};
+
 class SceneRenderer : public OGLRenderer
 {
 public:
@@ -109,15 +127,23 @@ private:
 	static SceneRenderer* m_Instance;
 	AssetManager& m_AssetManager;
 
+	//Camera
+	std::shared_ptr<Camera> m_Camera;
+
+	//Meshes
 	std::shared_ptr<Mesh> m_CubeMesh;
 	std::shared_ptr<Mesh> m_QuadMesh;
 	std::shared_ptr<Mesh> m_QuadMiniMesh;
 	std::shared_ptr<Mesh> m_PointMesh;
 
-	std::shared_ptr<Camera> m_Camera;
-
-	static std::shared_ptr<SceneNode> m_RootNode;
-	std::shared_ptr<TerrainNode> m_TerrainNode;
+	//Shaders
+	std::shared_ptr<Shader> m_TerrainShader;
+	std::shared_ptr<Shader> m_DiffuseShader;
+	std::shared_ptr<Shader> m_DiffuseAnimShader;
+	std::shared_ptr<Shader> m_SkyboxShader;
+	std::shared_ptr<Shader> m_DepthShadowShader;
+	std::shared_ptr<Shader> m_QuadShader;
+	std::shared_ptr<Shader> m_ReflectShader;
 
 	//Lights
 	std::shared_ptr<DirectionalLight> m_DirLight;
@@ -130,21 +156,21 @@ private:
 	//Lights Uniform Buffers
 	std::shared_ptr<UniformBuffer> m_MatrixUBO;
 	std::shared_ptr<UniformBuffer> m_DirLightUBO;
-	std::shared_ptr<UniformBuffer> m_PointLightUBO;
+	std::shared_ptr<UniformBuffer> m_PointLightUBO;	
 	
+	//Skybox and Shadow Buffers
 	std::shared_ptr<Skybox> m_Skybox;
 	std::shared_ptr<ShadowBuffer> m_ShadowBuffer;
 
+	//Environment Uniform Buffers (Used for Fog)
+	EnvironmentDataStruct m_EnvironmentDataStruct;
+	std::shared_ptr<UniformBuffer> m_EnvironmentUBO;
+
+	static std::shared_ptr<SceneNode> m_RootNode;
+	std::shared_ptr<TerrainNode> m_TerrainNode;
+
 	std::vector<SceneNode*> m_OpaqueNodesList;
 	std::vector<SceneNode*> m_TransparentNodesList;
-
-	std::shared_ptr<Shader> m_TerrainShader;
-	std::shared_ptr<Shader> m_DiffuseShader;
-	std::shared_ptr<Shader> m_DiffuseAnimShader;
-	std::shared_ptr<Shader> m_SkyboxShader;
-	std::shared_ptr<Shader> m_DepthShadowShader;
-	std::shared_ptr<Shader> m_QuadShader;
-	std::shared_ptr<Shader> m_ReflectShader;
 
 	Matrix4 m_LightSpaceProj;
 	Matrix4 m_LightSpaceView;

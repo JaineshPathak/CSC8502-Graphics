@@ -13,6 +13,7 @@ uniform sampler2D shadowTex;				//7
 
 uniform vec3 cameraPos;
 uniform bool hasBumpTex = true;
+uniform float u_time;
 
 struct DirectionalLight
 {
@@ -27,6 +28,12 @@ struct PointLight
 	vec4 lightRadialIntensityData;
 };
 
+struct EnvironmentData
+{
+	vec4 fogData;
+	vec4 fogColor;
+};
+
 layout(std140, binding = 1) uniform u_DirectionLight
 {
 	DirectionalLight directionalLight;
@@ -38,10 +45,10 @@ layout(std140, binding = 2) uniform u_PointLights
 	PointLight pointLights[MAX_POINT_LIGHTS];
 };
 
-uniform int enableFog;
-uniform vec4 fogColour;
-
-uniform float u_time;
+layout(std140, binding = 3) uniform u_EnvironmentData
+{
+	EnvironmentData envData;
+};
 
 in Vertex
 {
@@ -109,26 +116,10 @@ void main(void)
 	vec3 normalFinal = IN.normal;
 	if(hasBumpTex)
 	{
-		/*normal = texture(bumpTex, IN.texCoord ).xyz;
-		normal = normal * 2.0 - 1.0;
-		normal.xy *= 1.0;
-		normal = normalize(TBN * normalize(normal));*/
-
 		vec3 grassNormal = texture(bumpGrassTex, IN.texCoord).xyz * grassAmount;
-		//grassNormal = grassNormal * 2.0 - 1.0;
-		//grassNormal.xy *= 1.0;
-		//grassNormal = normalize(TBN * normalize(grassNormal));
-
 		vec3 rocksNormal = texture(bumpRocksTex, IN.texCoord).xyz * rocksAmount;
-		//rocksNormal = rocksNormal * 2.0 - 1.0;
-		//rocksNormal.xy *= 1.0;
-		//rocksNormal = normalize(TBN * normalize(rocksNormal));
-
 		vec3 groundNormal = texture(bumpGroundTex, IN.texCoord).xyz * groundAmount;
-		//groundNormal = groundNormal * 2.0 - 1.0;
-		//groundNormal.xy *= 1.0;
-		//groundNormal = normalize(TBN * normalize(groundNormal));
-
+		
 		normalFinal = grassNormal + rocksNormal + groundNormal;
 		normalFinal = normalFinal * 2.0 - 1.0;
 		normalFinal.xy *= 1.0;
@@ -150,9 +141,11 @@ void main(void)
 	}
 
 	fragColour = vec4(result, 1.0);
-	if(enableFog == 1)
+
+	bool fogEnabled = bool(envData.fogData.x);
+	if(fogEnabled)
 	{
-		fragColour = mix(vec4(fogColour.xyz, 1.0f), fragColour, IN.visibility);
+		fragColour = mix(vec4(envData.fogColor.xyz, 1.0f), fragColour, IN.visibility);
 	}
 	//fragColour = vec4(1.0);
 }
@@ -163,25 +156,18 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor)
 	vec4 lightDirColour = directionalLight.lightColor;
 	float lightDirIntensity = directionalLight.lightDirection.w;
 
-	vec3 V = viewDir;
 	vec3 N = normalize(normal);
 	vec3 L = normalize(-lightDir);
-	vec3 H = normalize(V + L);
-
+	
 	float NdotL = max(dot(N, L), 0.0001f);
-	float NdotH = dot(N, H);
-
-	float specFactor = clamp(NdotH, 0.0, 1.0);
-	specFactor = pow(specFactor, 32.0f);
-
+	
 	vec3 ambient = 0.1f * lightDirColour.rgb;
 	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
-	vec3 specular = specFactor * lightDirColour.rgb;
-
+	
 	// calculate shadow
     float shadow = ShadowCalc(NdotL);
 
-	return (ambient + (1.0 - shadow) * (diffuse + specular)) * albedoColor;
+	return (ambient + (1.0 - shadow) * (diffuse)) * albedoColor;
 }
 
 vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 viewDir, vec3 normal, vec3 albedoColor)

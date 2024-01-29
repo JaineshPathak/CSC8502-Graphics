@@ -17,6 +17,12 @@ struct PointLight
 	vec4 lightRadialIntensityData;
 };
 
+struct EnvironmentData
+{
+	vec4 fogData;
+	vec4 fogColor;
+};
+
 layout(std140, binding = 1) uniform u_DirectionLight
 {
 	DirectionalLight directionalLight;
@@ -28,6 +34,11 @@ layout(std140, binding = 2) uniform u_PointLights
 	PointLight pointLights[MAX_POINT_LIGHTS];
 };
 
+layout(std140, binding = 3) uniform u_EnvironmentData
+{
+	EnvironmentData envData;
+};
+
 //This should be same from Geometry Shader if there is any or else from Fragment Shader
 in Vertex
 {
@@ -35,6 +46,7 @@ in Vertex
 	vec2 texCoord;
 	vec3 normal;
 	vec3 worldPos;
+	float visibility;
 } IN;
 
 out vec4 fragColour;
@@ -58,6 +70,10 @@ void main(void)
 	}
 	
 	fragColour = vec4(result, 1.0);
+	
+	bool fogEnabled = bool(envData.fogData.x);
+	if(fogEnabled)
+		fragColour = mix(envData.fogColor, fragColour, IN.visibility);
 }
 
 vec3 CalcDirLight(vec3 normal, vec3 albedoColor)

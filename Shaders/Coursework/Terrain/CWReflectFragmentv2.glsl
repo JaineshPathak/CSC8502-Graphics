@@ -1,4 +1,4 @@
-#version 430 core
+#version 430
 
 const int MAX_POINT_LIGHTS = 100;
 
@@ -6,6 +6,10 @@ uniform sampler2D diffuseTex;
 uniform sampler2D bumpTex;
 uniform samplerCube cubeTex;
 uniform sampler2D shadowTex;
+
+uniform vec3 cameraPos;
+uniform bool hasBumpTex = true;
+uniform float u_time;
 
 struct DirectionalLight
 {
@@ -20,6 +24,12 @@ struct PointLight
 	vec4 lightRadialIntensityData;
 };
 
+struct EnvironmentData
+{
+	vec4 fogData;
+	vec4 fogColor;
+};
+
 layout(std140, binding = 1) uniform u_DirectionLight
 {
 	DirectionalLight directionalLight;
@@ -31,11 +41,10 @@ layout(std140, binding = 2) uniform u_PointLights
 	PointLight pointLights[MAX_POINT_LIGHTS];
 };
 
-uniform vec3 cameraPos;
-uniform bool hasBumpTex = true;
-
-uniform int enableFog;
-uniform vec4 fogColour;
+layout(std140, binding = 3) uniform u_EnvironmentData
+{
+	EnvironmentData envData;
+};
 
 in Vertex
 {
@@ -52,8 +61,6 @@ in Vertex
 } IN;
 
 out vec4 fragColour;
-
-uniform float u_time;
 
 vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor);
 vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 viewDir, vec3 normal, vec3 albedoColor);
@@ -115,10 +122,10 @@ void main(void)
 	}
 
 	fragColour = reflectTex * vec4(result, 1.0f);
-	if(enableFog == 1)
-	{
-		fragColour = mix(fogColour, fragColour, IN.visibility);
-	}
+	
+	bool fogEnabled = bool(envData.fogData.x);
+	if(fogEnabled)
+		fragColour = mix(envData.fogColor, fragColour, IN.visibility);
 }
 
 vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor)

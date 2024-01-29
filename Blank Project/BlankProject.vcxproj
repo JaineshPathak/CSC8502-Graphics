@@ -174,7 +174,6 @@
   <ItemGroup>
     <None Include="..\Shaders\Coursework\Terrain\CWTerrainFragv2.glsl" />
     <None Include="..\Shaders\Coursework\Terrain\CWTexturedFragmentv2.glsl" />
-    <None Include="..\Shaders\Coursework\Terrain\CWTexturedSkinFragment.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

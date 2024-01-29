@@ -6,10 +6,20 @@ layout(std140, binding = 0) uniform Matrices
 	mat4 viewMatrix;
 };
 
+struct EnvironmentData
+{
+	vec4 fogData;
+	vec4 fogColor;
+};
+
+layout(std140, binding = 3) uniform u_EnvironmentData
+{
+	EnvironmentData envData;
+};
+
 uniform mat4 modelMatrix;
 uniform mat4 shadowMatrix;
 uniform mat4 lightSpaceMatrix;
-uniform int enableFog;
 
 in vec3 position;
 in vec2 texCoord;
@@ -32,7 +42,6 @@ out Vertex
 	vec4 fragPosLightSpace;
 
 	float visibility;
-	vec4 weightColor;
 } OUT;
 
 const float density = 0.00015f;
@@ -64,7 +73,6 @@ void main(void)
 	mat4 mvp = projMatrix * viewMatrix * modelMatrix;
 	gl_Position = mvp * vec4(skelPos.xyz, 1.0);
 	OUT.texCoord = texCoord;
-	OUT.weightColor = vec4(texCoord, 1.0f, 1.0f);
 
 
 
@@ -72,10 +80,14 @@ void main(void)
 	vec4 posRelativeToCam = viewMatrix * worldPos;
 	OUT.worldPos = worldPos.xyz;
 
-	if(enableFog == 1)
+	bool fogEnabled = bool(envData.fogData.x);
+	if(fogEnabled)
 	{
+		float fogDensity = envData.fogData.y;
+		float fogGradient = envData.fogData.z;
+
 		float distance = length(posRelativeToCam.xyz);
-		OUT.visibility = exp(-pow((distance * density), gradient));
+		OUT.visibility = exp(-pow((distance * fogDensity), fogGradient));
 		OUT.visibility = clamp(OUT.visibility, 0.0, 1.0);
 	}
 

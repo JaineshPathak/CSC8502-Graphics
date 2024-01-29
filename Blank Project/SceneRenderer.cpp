@@ -21,9 +21,11 @@ const Vector3 DIRECTIONAL_LIGHT_DIR(-0.15f, -1.0f, -1.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
 
 const int MAX_POINT_LIGHTS = 100;
+
 const int UBO_MATRIX_BINDING_INDEX = 0;
 const int UBO_DIR_LIGHT_BINDING_INDEX = 1;
 const int UBO_POINT_LIGHT_BINDING_INDEX = 2;
+const int UBO_ENVIRONMENT_BINDING_INDEX = 3;
 
 std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
 SceneRenderer* SceneRenderer::m_Instance = nullptr;
@@ -141,7 +143,7 @@ bool SceneRenderer::InitShaders()
 {
 	m_TerrainShader = m_AssetManager.GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
 	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
-	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragmentv2.glsl");
+	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
 	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", SHADERDIRCOURSETERRAIN"CWSkyboxVertex.glsl", "skyboxFragment.glsl");
 	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthShadowBufferFrag.glsl");
 	m_QuadShader = m_AssetManager.GetShader("QuadDepthShader", "DepthQuadBufferVert.glsl", "DepthQuadBufferFrag.glsl");
@@ -208,12 +210,14 @@ bool SceneRenderer::InitBuffers()
 	m_MatrixUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer(sizeof(Matrix4) * 2, NULL, GL_STATIC_DRAW, UBO_MATRIX_BINDING_INDEX, 0));
 	m_DirLightUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer(sizeof(DirectionalLightStruct), NULL, GL_DYNAMIC_DRAW, UBO_DIR_LIGHT_BINDING_INDEX, 0));
 	m_PointLightUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer((MAX_POINT_LIGHTS * sizeof(PointLightStruct)) + (sizeof(int) * 4), NULL, GL_DYNAMIC_DRAW, UBO_POINT_LIGHT_BINDING_INDEX, 0));
+	m_EnvironmentUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer(sizeof(EnvironmentDataStruct), NULL, GL_STATIC_DRAW, UBO_ENVIRONMENT_BINDING_INDEX, 0));
 
 	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(2048, 2048));
 
 	return  m_MatrixUBO->IsInitialized() &&
 			m_DirLightUBO->IsInitialized() &&
 			m_PointLightUBO->IsInitialized() &&
+			m_EnvironmentUBO->IsInitialized() &&
 			m_ShadowBuffer != nullptr;
 }
 
@@ -283,6 +287,9 @@ bool SceneRenderer::InitSkybox()
 
 bool SceneRenderer::InitGLParameters()
 {
+	//Fog Data
+	m_EnvironmentDataStruct = EnvironmentDataStruct(true, 0.00015f, 1.5f, FOG_COLOUR);
+
 	glEnable(GL_DEPTH_TEST);
 
 	glEnable(GL_CULL_FACE);
@@ -368,6 +375,7 @@ bool SceneRenderer::InitSceneNodes()
 
 void SceneRenderer::UpdateUBOData()
 {
+	//Camera's View and Projection Matrix
 	if (m_MatrixUBO == nullptr || !m_MatrixUBO->IsInitialized()) return;
 
 	m_MatrixUBO->Bind();
@@ -375,6 +383,7 @@ void SceneRenderer::UpdateUBOData()
 	m_MatrixUBO->BindSubData(sizeof(Matrix4), sizeof(Matrix4), m_Camera->GetViewMatrix().values);
 	m_MatrixUBO->Unbind();
 
+	//Directional Light's
 	if (m_DirLightUBO == nullptr || !m_DirLightUBO->IsInitialized()) return;
 
 	m_DirLightStruct.lightDirection = Vector4(m_DirLight->GetLightDir());
@@ -385,6 +394,7 @@ void SceneRenderer::UpdateUBOData()
 	m_DirLightUBO->BindSubData(0, sizeof(DirectionalLightStruct), &m_DirLightStruct);
 	m_DirLightUBO->Unbind();
 
+	//Point Light's
 	if (m_PointLightUBO == nullptr || !m_PointLightUBO->IsInitialized()) return;
 
 	if (m_PointLightsNum > 0)
@@ -401,6 +411,13 @@ void SceneRenderer::UpdateUBOData()
 	m_PointLightUBO->BindSubData(0, sizeof(int), &m_PointLightsNum);
 	m_PointLightUBO->BindSubData(sizeof(int) * 4, sizeof(PointLightStruct) * (int)m_PointLightStructList.size(), m_PointLightStructList.data());
 	m_PointLightUBO->Unbind();
+
+	//Environment's Fog
+	if (m_EnvironmentUBO == nullptr || !m_EnvironmentUBO->IsInitialized()) return;
+
+	m_EnvironmentUBO->Bind();
+	m_EnvironmentUBO->BindSubData(0, sizeof(EnvironmentDataStruct), &m_EnvironmentDataStruct);
+	m_EnvironmentUBO->Unbind();
 }
 
 void SceneRenderer::SpawnSceneNode(const SceneNodeProperties& nodeProp)
@@ -567,6 +584,17 @@ void SceneRenderer::DrawImGui()
 		}
 	}
 
+	if (ImGui::CollapsingHeader("Environment Data"))
+	{
+		bool fogEnabled = (bool)m_EnvironmentDataStruct.fogData.x;
+		if(ImGui::Checkbox("Fog", &fogEnabled))
+			m_EnvironmentDataStruct.fogData.x = (float)fogEnabled;
+
+		ImGui::DragFloat("Fog Density", &m_EnvironmentDataStruct.fogData.y, 0.00001f, 0.0f, 10.0f, "%.5f");
+		ImGui::DragFloat("Fog Gradient", &m_EnvironmentDataStruct.fogData.z, 0.01f, -10.0f, 10.0f);
+		ImGui::ColorEdit4("Fog Colour", (float*)& m_EnvironmentDataStruct.fogColor);
+	}
+
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -589,9 +617,6 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 
 		nodeShader->SetMat4("modelMatrix", modelMatrix);
 		nodeShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
-
-		nodeShader->SetInt("enableFog", true);
-		nodeShader->SetVector4("fogColour", FOG_COLOUR);
 
 		Node->Draw(*this);
 
