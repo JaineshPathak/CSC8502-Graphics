@@ -1,4 +1,6 @@
-#version 330 core
+#version 430
+
+const int MAX_POINT_LIGHTS = 100;
 
 uniform sampler2D diffuseSplatmapTex;		//0
 uniform sampler2D diffuseGrassTex;			//1
@@ -12,28 +14,34 @@ uniform sampler2D shadowTex;				//7
 uniform vec3 cameraPos;
 uniform bool hasBumpTex = true;
 
-//Directional Light
-uniform vec3 lightDir;
-uniform vec4 lightDirColour;
-uniform float lightDirIntensity;
+struct DirectionalLight
+{
+	vec4 lightDirection;
+	vec4 lightColor;
+};
 
-//Point Light
-uniform int numPointLights;
-uniform vec3 pointLightPos[50];
-uniform vec4 pointLightColour[50];
-uniform float pointLightRadius[50];
-uniform float pointLightIntensity[50];
+struct PointLight
+{
+	vec4 lightPosition;
+	vec4 lightColor;
+	vec4 lightRadialIntensityData;
+};
 
-uniform vec4 lightColour;
-uniform vec4 specularColour;
-uniform vec3 lightPos;
-uniform float lightRadius;
+layout(std140, binding = 1) uniform u_DirectionLight
+{
+	DirectionalLight directionalLight;
+};
+
+layout(std140, binding = 2) uniform u_PointLights
+{
+	int numPointLights;
+	PointLight pointLights[MAX_POINT_LIGHTS];
+};
 
 uniform int enableFog;
 uniform vec4 fogColour;
 
 uniform float u_time;
-const float PI = 3.14159265359;
 
 in Vertex
 {
@@ -51,8 +59,8 @@ in Vertex
 
 out vec4 fragColour;
 
-vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec4 diffuseFinal);
-vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _normal, vec4 _diffuseFinal);
+vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor);
+vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 viewDir, vec3 normal, vec3 albedoColor);
 
 float ShadowCalc(float NdotL)
 {
@@ -134,11 +142,11 @@ void main(void)
 	vec4 diffuseFinal = grassTex + rocksTex + groundTex;
 
 	vec3 result = vec3(0.0);
-	result = CalcDirLight(viewDir, normalFinal, diffuseFinal);
+	result = CalcDirLight(viewDir, normalFinal, diffuseFinal.rgb);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], viewDir, normalFinal, diffuseFinal);
+			result += CalcPointLight(pointLights[i].lightColor, pointLights[i].lightPosition.xyz, pointLights[i].lightRadialIntensityData.x, pointLights[i].lightRadialIntensityData.y, viewDir, normalFinal, diffuseFinal.rgb);
 	}
 
 	fragColour = vec4(result, 1.0);
@@ -149,20 +157,22 @@ void main(void)
 	//fragColour = vec4(1.0);
 }
 
-vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec4 diffuseFinal)
+vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor)
 {
-	vec3 albedoColor = diffuseFinal.rgb;
+	vec3 lightDir = directionalLight.lightDirection.xyz;
+	vec4 lightDirColour = directionalLight.lightColor;
+	float lightDirIntensity = directionalLight.lightDirection.w;
 
 	vec3 V = viewDir;
 	vec3 N = normalize(normal);
 	vec3 L = normalize(-lightDir);
 	vec3 H = normalize(V + L);
 
-	float NdotL = max(dot(N, L), 0.0);
+	float NdotL = max(dot(N, L), 0.0001f);
 	float NdotH = dot(N, H);
 
 	float specFactor = clamp(NdotH, 0.0, 1.0);
-	specFactor = pow(specFactor, 32.0f);	
+	specFactor = pow(specFactor, 32.0f);
 
 	vec3 ambient = 0.1f * lightDirColour.rgb;
 	vec3 diffuse = (NdotL * lightDirIntensity) * lightDirColour.rgb;
@@ -171,112 +181,31 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec4 diffuseFinal)
 	// calculate shadow
     float shadow = ShadowCalc(NdotL);
 
-	//return (ambient + diffuse + specular) * albedoColor;
-	return (ambient + (1.0 - shadow) * (diffuse)) * albedoColor;
-
-	/*vec3 incident = normalize(lightDir);
-	vec3 halfDir = normalize(incident + viewDir);	
-
-	float lambert = max(dot(incident, IN.normal), 0.0);
-	float attenuation = 1.0f;
-
-	float specFactor = clamp(dot(halfDir, IN.normal), 0.0, 1.0);
-	specFactor = pow(specFactor, 800.0f);
-
-	vec3 ambient = 0.3f * diffuseFinal.rgb;
-	vec3 diffuseRGB = lightDirColour.rgb * diffuseFinal.rgb * lambert;
-	vec3 specular = lightDirColour.rgb * (specularColour.rgb * specFactor);
-
-
-	//--------------------
-	//Shadow
-
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
-
-	//--------------------
-
-	ambient *= shadow;
-	diffuseRGB *= shadow;
-	specular *= shadow;
-
-	return (ambient + diffuseRGB + specular) * lightDirIntensity;*/
+	return (ambient + (1.0 - shadow) * (diffuse + specular)) * albedoColor;
 }
 
-vec3 CalcPointLight(vec4 _pointLightColour, vec3 _pointLightPos, float _pointLightRadius, float _pointLightIntensity, vec3 _viewDir, vec3 _normal, vec4 _diffuseFinal)
+vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 viewDir, vec3 normal, vec3 albedoColor)
 {
-	vec3 albedoColor = _diffuseFinal.rgb;
-
-	vec3 V = _viewDir;
-	vec3 N = normalize(_normal);
-	vec3 L = normalize(_pointLightPos - IN.worldPos);
+	vec3 V = viewDir;
+	vec3 N = normalize(normal);
+	vec3 L = normalize(pointLightPos - IN.worldPos);
 	vec3 H = normalize(V + L);
 
 	float NdotL = max(dot(N, L), 0.0);
 	float NdotH = dot(N, H);
-	float Dist = length(_pointLightPos - IN.worldPos);
-	float Atten = 1.0 - clamp((Dist / _pointLightRadius), 0.0, 1.0);
+	float Dist = length(pointLightPos - IN.worldPos);
+	float Atten = 1.0 - clamp((Dist / pointLightRadius), 0.0, 1.0);
 	
 	float specFactor = clamp(NdotH, 0.0, 1.0);
 	specFactor = pow(specFactor, 32.0f);
 
-	vec3 ambient = 0.1f * _pointLightColour.rgb;
-	vec3 diffuse = NdotL * _pointLightIntensity * _pointLightColour.rgb;
-	vec3 specular = specFactor * _pointLightColour.rgb;
+	vec3 ambient = 0.1f * pointLightColour.rgb;
+	vec3 diffuse = NdotL * pointLightIntensity * pointLightColour.rgb;
+	vec3 specular = specFactor * pointLightColour.rgb;
 
 	ambient *= Atten;
 	diffuse *= Atten;
 	specular *= Atten;
 	
 	return (ambient + diffuse + specular) * albedoColor;
-	/*vec3 incident = normalize(_pointLightPos - IN.worldPos);
-	vec3 halfDir = normalize(incident + _viewDir);
-
-	float lambert = max(dot(incident, IN.normal), 0.0);
-	float distance = length(_pointLightPos - IN.worldPos);
-	float attenuation = 1.0 - clamp( (distance / _pointLightRadius), 0.0, 1.0);
-
-	float specFactor = clamp(dot(halfDir, IN.normal), 0.0, 1.0);
-	specFactor = pow(specFactor, 800.0f);
-
-	vec3 ambient = 0.1f * _diffuseFinal.rgb;
-	vec3 diffuseRGB = _pointLightColour.rgb * _diffuseFinal.rgb * lambert;
-	vec3 specular = _pointLightColour.rgb * (_pointLightSpecularColour.rgb * specFactor);
-
-	//--------------------
-	//Shadow
-
-	float shadow = 1.0;
-	vec3 shadowNDC = IN.shadowProj.xyz / IN.shadowProj.w;
-	if( abs(shadowNDC.x) < 1.0f && 
-		abs(shadowNDC.y) < 1.0f &&
-		abs(shadowNDC.z) < 1.0f)
-	{
-		vec3 biasCoord = shadowNDC * 0.5f + 0.5f;
-		float shadowZ = texture(shadowTex, biasCoord.xy).x;
-		if(shadowZ < biasCoord.z)
-			shadow = 0.0f;
-	}
-
-	//--------------------
-
-	ambient *= attenuation * _pointLightIntensity;
-	ambient*= shadow;
-
-	diffuseRGB *= attenuation * _pointLightIntensity;
-	diffuseRGB *= shadow;
-	
-	specular *= attenuation * _pointLightIntensity;
-	specular *= shadow;
-
-	return (ambient + diffuseRGB + specular);*/
 }

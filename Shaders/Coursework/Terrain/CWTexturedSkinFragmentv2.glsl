@@ -50,6 +50,7 @@ in Vertex
 	vec4 fragPosLightSpace;
 
 	float visibility;
+	vec4 weightColor;
 } IN;
 
 out vec4 fragColour;

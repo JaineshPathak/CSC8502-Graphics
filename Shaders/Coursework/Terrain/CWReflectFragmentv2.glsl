@@ -1,13 +1,11 @@
-#version 430
+#version 430 core
 
 const int MAX_POINT_LIGHTS = 100;
 
 uniform sampler2D diffuseTex;
 uniform sampler2D bumpTex;
+uniform samplerCube cubeTex;
 uniform sampler2D shadowTex;
-
-uniform vec3 cameraPos;
-uniform bool hasBumpTex = true;
 
 struct DirectionalLight
 {
@@ -33,10 +31,11 @@ layout(std140, binding = 2) uniform u_PointLights
 	PointLight pointLights[MAX_POINT_LIGHTS];
 };
 
+uniform vec3 cameraPos;
+uniform bool hasBumpTex = true;
+
 uniform int enableFog;
 uniform vec4 fogColour;
-
-uniform float u_time;
 
 in Vertex
 {
@@ -53,6 +52,8 @@ in Vertex
 } IN;
 
 out vec4 fragColour;
+
+uniform float u_time;
 
 vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor);
 vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 viewDir, vec3 normal, vec3 albedoColor);
@@ -89,37 +90,35 @@ float ShadowCalc(float NdotL)
 
 void main(void)
 {
-	//==============================================================================================
-
 	vec4 albedoColor = texture(diffuseTex, IN.texCoord);
-	float diffuseAlpha = albedoColor.a;
-
 	vec3 viewDir = normalize(cameraPos - IN.worldPos);
-
+	
 	mat3 TBN = mat3(normalize(IN.tangent), normalize(IN.binormal), normalize(IN.normal));
 	vec3 normal = IN.normal;
 	if(hasBumpTex)
 	{
 		normal = texture(bumpTex, IN.texCoord).xyz;
 		normal = normal * 2.0 - 1.0;
-		normal.xy *= 1.0;
+		normal.xy *= 0.1;
 		normal = normalize(TBN * normalize(normal));
 	}
 
+	vec3 reflectDir = reflect(-viewDir, normalize(normal));
+	vec4 reflectTex = texture(cubeTex, reflectDir);
+
 	vec3 result = vec3(0.0);
-	result += CalcDirLight(viewDir, normal, albedoColor.rgb);
+	result = CalcDirLight(viewDir, normal, albedoColor.rgb);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
 			result += CalcPointLight(pointLights[i].lightColor, pointLights[i].lightPosition.xyz, pointLights[i].lightRadialIntensityData.x, pointLights[i].lightRadialIntensityData.y, viewDir, normal, albedoColor.rgb);
 	}
 
-	fragColour = vec4(result, diffuseAlpha);
+	fragColour = reflectTex * vec4(result, 1.0f);
 	if(enableFog == 1)
 	{
-		fragColour = mix(vec4(fogColour.xyz, diffuseAlpha), fragColour, IN.visibility);
+		fragColour = mix(fogColour, fragColour, IN.visibility);
 	}
-	//fragColour = vec4(1.0);
 }
 
 vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor)
@@ -146,6 +145,7 @@ vec3 CalcDirLight(vec3 viewDir, vec3 normal, vec3 albedoColor)
 	// calculate shadow
     float shadow = ShadowCalc(NdotL);
 
+	//return (ambient + diffuse + specular) * albedoColor;
 	return (ambient + (1.0 - shadow) * (diffuse + specular)) * albedoColor;
 }
 

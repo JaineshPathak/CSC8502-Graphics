@@ -26,6 +26,14 @@ public:
 		this->w = w;
 	}
 
+	Vector4(const Vector3& v)
+	{
+		this->x = v.x;
+		this->y = v.y;
+		this->z = v.z;
+		this->w = 1.0f;
+	}
+
 	Vector3 ToVector3() {
 		return Vector3(x, y, z);
 	}

@@ -28,8 +28,6 @@ void Skybox::Draw()
 	glDepthMask(GL_FALSE);
 
 	m_SkyboxShader->Bind();
-	m_SkyboxShader->SetMat4("viewMatrix", SceneRenderer::Get()->GetCamera()->GetViewMatrix());
-	m_SkyboxShader->SetMat4("projMatrix", SceneRenderer::Get()->GetCamera()->GetProjMatrix());
 	m_SkyboxShader->SetTextureCubeMap("cubeTex", m_SkyboxTex, 0);
 
 	SceneRenderer::Get()->GetQuadMesh()->Draw();

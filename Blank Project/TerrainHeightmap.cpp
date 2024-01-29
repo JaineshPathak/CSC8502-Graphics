@@ -67,7 +67,6 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 		}
 	}
 	GenerateNormals();
-	//FlipNormals();
 	GenerateTangents();
 	BufferData();
 
@@ -77,8 +76,7 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	
 	//--------------------------------------------------------------------------
 	// Shader loading
-	//terrainShader = new Shader(SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"TerrainFragv2.glsl");
-	m_TerrainShader = AssetManager::Get()->GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
+	m_TerrainShader = AssetManager::Get()->GetShader("TerrainShader");
 	if (!m_TerrainShader->LoadSuccess())
 	{
 		m_InitSuccess = false;
@@ -88,10 +86,6 @@ TerrainHeightmap::TerrainHeightmap(const std::string& name, float vertexScaleWid
 	//--------------------------------------------------------------------------
 	// Textures
 	
-	/*terrainTextureSplatmap = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	terrainTextureGrass = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	terrainTextureRocks = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Rocks_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);
-	terrainTextureGround = SOIL_load_OGL_texture(TEXTUREDIRCOURSETERRAIN"Terrain_Ground_D.png", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS);*/
 	m_TerrainTextureSplatmap = AssetManager::Get()->GetTexture("TerrainSplatMap", TEXTUREDIRCOURSETERRAIN"Terrain_Splatmap4.png", false);
 	m_TerrainTextureGrass = AssetManager::Get()->GetTexture("TerrainGrass_Diffuse", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_D.png", false);
 	m_TerrainTextureGrassBump = AssetManager::Get()->GetTexture("TerrainGrass_Bump", TEXTUREDIRCOURSETERRAIN"Terrain_Grass_N.png", false);

@@ -12,12 +12,18 @@
 
 #include <nclgl/Camera.h>
 #include <nclgl/DirectionalLight.h>
+#include <nclgl/UniformBuffer.h>
 
 #include <algorithm>
 
 const Vector4 FOG_COLOUR(0.384f, 0.416f, 0.5f, 1.0f);
 const Vector3 DIRECTIONAL_LIGHT_DIR(-0.15f, -1.0f, -1.0f);
 const Vector4 DIRECTIONAL_LIGHT_COLOUR(1.0f, 0.870f, 0.729f, 1.0f);
+
+const int MAX_POINT_LIGHTS = 100;
+const int UBO_MATRIX_BINDING_INDEX = 0;
+const int UBO_DIR_LIGHT_BINDING_INDEX = 1;
+const int UBO_POINT_LIGHT_BINDING_INDEX = 2;
 
 std::shared_ptr<SceneNode> SceneRenderer::m_RootNode = nullptr;
 SceneRenderer* SceneRenderer::m_Instance = nullptr;
@@ -101,6 +107,8 @@ void SceneRenderer::UpdateScene(float DeltaTime)
 	if (Window::GetKeyboard()->KeyHeld(KeyboardKeys::KEYBOARD_DOWN))
 		m_OrthographicFOV -= DeltaTime;
 
+	UpdateUBOData();
+
 	//std::cout << "Ortho FOV: " << m_OrthographicFOV << std::endl;
 }
 
@@ -133,11 +141,11 @@ bool SceneRenderer::InitShaders()
 {
 	m_TerrainShader = m_AssetManager.GetShader("TerrainShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTerrainFragv2.glsl");
 	m_DiffuseShader = m_AssetManager.GetShader("DiffuseShader", SHADERDIRCOURSETERRAIN"CWTexturedVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedFragmentv2.glsl");
-	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertex.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragment.glsl");
-	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", "skyboxVertex.glsl", "skyboxFragment.glsl");
+	m_DiffuseAnimShader = m_AssetManager.GetShader("DiffuseAnimShader", SHADERDIRCOURSETERRAIN"CWTexturedSkinVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWTexturedSkinFragmentv2.glsl");
+	m_SkyboxShader = m_AssetManager.GetShader("SkyboxShader", SHADERDIRCOURSETERRAIN"CWSkyboxVertex.glsl", "skyboxFragment.glsl");
 	m_DepthShadowShader = m_AssetManager.GetShader("DepthShader", "DepthShadowBufferVert.glsl", "DepthShadowBufferFrag.glsl");
 	m_QuadShader = m_AssetManager.GetShader("QuadDepthShader", "DepthQuadBufferVert.glsl", "DepthQuadBufferFrag.glsl");
-	m_ReflectShader = m_AssetManager.GetShader("WaterShader", SHADERDIRCOURSETERRAIN"CWReflectVertex.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragment.glsl");
+	m_ReflectShader = m_AssetManager.GetShader("WaterShader", SHADERDIRCOURSETERRAIN"CWReflectVertexv2.glsl", SHADERDIRCOURSETERRAIN"CWReflectFragmentv2.glsl");
 
 	return  m_TerrainShader->LoadSuccess() && 
 			m_DiffuseShader->LoadSuccess() && 
@@ -197,14 +205,27 @@ bool SceneRenderer::InitMeshAnimations()
 
 bool SceneRenderer::InitBuffers()
 {
-	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(4096, 4096));
-	return m_ShadowBuffer != nullptr;
+	m_MatrixUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer(sizeof(Matrix4) * 2, NULL, GL_STATIC_DRAW, UBO_MATRIX_BINDING_INDEX, 0));
+	m_DirLightUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer(sizeof(DirectionalLightStruct), NULL, GL_DYNAMIC_DRAW, UBO_DIR_LIGHT_BINDING_INDEX, 0));
+	m_PointLightUBO = std::shared_ptr<UniformBuffer>(new UniformBuffer((MAX_POINT_LIGHTS * sizeof(PointLightStruct)) + (sizeof(int) * 4), NULL, GL_DYNAMIC_DRAW, UBO_POINT_LIGHT_BINDING_INDEX, 0));
+
+	m_ShadowBuffer = std::shared_ptr<ShadowBuffer>(new ShadowBuffer(2048, 2048));
+
+	return  m_MatrixUBO->IsInitialized() &&
+			m_DirLightUBO->IsInitialized() &&
+			m_PointLightUBO->IsInitialized() &&
+			m_ShadowBuffer != nullptr;
 }
 
 bool SceneRenderer::InitLights()
 {
 	m_DirLight = std::shared_ptr<DirectionalLight>(new DirectionalLight(DIRECTIONAL_LIGHT_DIR, DIRECTIONAL_LIGHT_COLOUR, Vector4()));
 	if (m_DirLight == nullptr) return false;
+
+	m_DirLightStruct = DirectionalLightStruct();
+	m_DirLightStruct.lightDirection = Vector4(m_DirLight->GetLightDir());
+	m_DirLightStruct.lightDirection.w = m_DirLight->GetIntensity();
+	m_DirLightStruct.lightColor = m_DirLight->GetColour();
 
 	if (FileHandler::FileExists(LIGHTSDATAFILE))
 	{
@@ -220,21 +241,29 @@ bool SceneRenderer::InitLights()
 		{
 			for (int i = 0; i < pLightIntensityV.size(); i++)
 			{
-				std::shared_ptr<LightPointNode> pointLight = std::shared_ptr<LightPointNode>(new LightPointNode());
-				pointLight->SetLightRadius(pLightRadiusV[i]);
-				pointLight->SetLightIntensity(pLightIntensityV[i]);
-				pointLight->SetPosition(pLightPosV[i]);
-				pointLight->SetLightColour(pLightColorV[i]);
-				pointLight->SetLightSpecularColour(pLightSpecColorV[i]);
+				std::shared_ptr<LightPointNode> pointLightNode = std::shared_ptr<LightPointNode>(new LightPointNode());
+				pointLightNode->SetLightRadius(pLightRadiusV[i]);
+				pointLightNode->SetLightIntensity(pLightIntensityV[i]);
+				pointLightNode->SetPosition(pLightPosV[i]);
+				pointLightNode->SetLightColour(pLightColorV[i]);
+				pointLightNode->SetLightSpecularColour(pLightSpecColorV[i]);
 
-				m_PointLightsList.emplace_back(pointLight);
+				m_PointLightsList.emplace_back(pointLightNode);
 
 				if (m_TerrainNode) 
-					m_TerrainNode->AddChild(pointLight.get());
+					m_TerrainNode->AddChild(pointLightNode.get());
+
+				//Point Light UBO
+				PointLightStruct pLight = PointLightStruct();
+				pLight.lightPosition = Vector4(pLightPosV[i]);
+				pLight.lightColor = pLightColorV[i];
+				pLight.lightRadiusIntensityData = Vector4(pLightRadiusV[i], pLightIntensityV[i], 0.0f, 1.0f);
+
+				m_PointLightStructList.push_back(pLight);
 			}
 
 			m_PointLightsNum = (int)m_PointLightsList.size();
-		}		
+		}
 	}
 
 	return true;
@@ -335,6 +364,43 @@ bool SceneRenderer::InitSceneNodes()
 	}
 
 	return true;
+}
+
+void SceneRenderer::UpdateUBOData()
+{
+	if (m_MatrixUBO == nullptr || !m_MatrixUBO->IsInitialized()) return;
+
+	m_MatrixUBO->Bind();
+	m_MatrixUBO->BindSubData(0, sizeof(Matrix4), m_Camera->GetProjMatrix().values);
+	m_MatrixUBO->BindSubData(sizeof(Matrix4), sizeof(Matrix4), m_Camera->GetViewMatrix().values);
+	m_MatrixUBO->Unbind();
+
+	if (m_DirLightUBO == nullptr || !m_DirLightUBO->IsInitialized()) return;
+
+	m_DirLightStruct.lightDirection = Vector4(m_DirLight->GetLightDir());
+	m_DirLightStruct.lightDirection.w = m_DirLight->GetIntensity();
+	m_DirLightStruct.lightColor = m_DirLight->GetColour();
+
+	m_DirLightUBO->Bind();
+	m_DirLightUBO->BindSubData(0, sizeof(DirectionalLightStruct), &m_DirLightStruct);
+	m_DirLightUBO->Unbind();
+
+	if (m_PointLightUBO == nullptr || !m_PointLightUBO->IsInitialized()) return;
+
+	if (m_PointLightsNum > 0)
+	{
+		for (size_t i = 0; i < m_PointLightsNum; i++)
+		{
+			m_PointLightStructList[i].lightPosition = Vector4(m_PointLightsList[i]->GetLightPosition());
+			m_PointLightStructList[i].lightColor = m_PointLightsList[i]->GetLightColour();
+			m_PointLightStructList[i].lightRadiusIntensityData = Vector4(m_PointLightsList[i]->GetLightRadius(), m_PointLightsList[i]->GetLightIntensity(), 0.0f, 1.0f);
+		}
+	}
+
+	m_PointLightUBO->Bind();
+	m_PointLightUBO->BindSubData(0, sizeof(int), &m_PointLightsNum);
+	m_PointLightUBO->BindSubData(sizeof(int) * 4, sizeof(PointLightStruct) * (int)m_PointLightStructList.size(), m_PointLightStructList.data());
+	m_PointLightUBO->Unbind();
 }
 
 void SceneRenderer::SpawnSceneNode(const SceneNodeProperties& nodeProp)
@@ -514,40 +580,15 @@ void SceneRenderer::DrawNode(SceneNode* Node)
 		nodeShader->Bind();
 
 		modelMatrix = Node->GetWorldTransform() * Matrix4::Scale(Node->GetModelScale());
-		viewMatrix = m_Camera->GetViewMatrix();
-		projMatrix = m_Camera->GetProjMatrix();
+		//viewMatrix = m_Camera->GetViewMatrix();
+		//projMatrix = m_Camera->GetProjMatrix();
 		//viewMatrix = Matrix4::BuildViewMatrix(m_Camera->getPosition(), m_TerrainNode->GetHeightmapSize() * Vector3(0.5f, 2.0f, 0.5f), Vector3(0.0f, 1.0f, 0.0f));
 		//projMatrix = Matrix4::Orthographic(-1000.0f, 10000.0f, 100.0f * m_OrthographicFOV, -100.0f * m_OrthographicFOV, 100.0f * m_OrthographicFOV, -100.0f * m_OrthographicFOV);
 
 		nodeShader->SetVector3("cameraPos", m_Camera->getPosition());
 
 		nodeShader->SetMat4("modelMatrix", modelMatrix);
-		nodeShader->SetMat4("viewMatrix", viewMatrix);
-		nodeShader->SetMat4("projMatrix", projMatrix);
 		nodeShader->SetMat4("lightSpaceMatrix", m_LightSpaceMatrix);
-
-		nodeShader->SetVector3("lightDir", m_DirLight->GetLightDir());
-		nodeShader->SetVector4("lightDirColour", m_DirLight->GetColour());
-		nodeShader->SetFloat("lightDirIntensity", m_DirLight->GetIntensity());
-
-		nodeShader->SetInt("numPointLights", m_PointLightsNum);
-		if (m_PointLightsNum > 0)
-		{
-			for (size_t i = 0; i < m_PointLightsList.size(); i++)
-			{
-				LightPointNode& pointLight = *m_PointLightsList[i];
-
-				std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
-				std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
-				std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
-				std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
-				
-				nodeShader->SetVector3(lightPosName, pointLight.GetLightPosition());
-				nodeShader->SetVector4(lightColorName, pointLight.GetLightColour());
-				nodeShader->SetFloat(lightRadiusName, pointLight.GetLightRadius());
-				nodeShader->SetFloat(lightIntensityName, pointLight.GetLightIntensity());
-			}
-		}
 
 		nodeShader->SetInt("enableFog", true);
 		nodeShader->SetVector4("fogColour", FOG_COLOUR);

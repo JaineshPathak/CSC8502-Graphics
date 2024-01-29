@@ -18,7 +18,8 @@ TerrainNode::TerrainNode()
 	m_GrassPointMesh = SceneRenderer::Get()->GetPointMesh();
 	m_GrassShader = std::shared_ptr<Shader>(new Shader(SHADERDIRCOURSETERRAIN"CWGrassVertex.glsl", SHADERDIRCOURSETERRAIN"CWGrassFragment.glsl", SHADERDIRCOURSETERRAIN"CWGrassGeometry.glsl"));
 	m_NormalsShader = std::shared_ptr<Shader>(new Shader(SHADERDIRCOURSETERRAIN"CWNormalsVertex.glsl", SHADERDIRCOURSETERRAIN"CWNormalsFragment.glsl", SHADERDIRCOURSETERRAIN"CWNormalsGeometry.glsl"));
-	m_GrassTexID = AssetManager::Get()->GetTexture("GrassTex", TEXTUREDIRCOURSETERRAIN"Grass2_D.png");
+	m_GrassTexID = AssetManager::Get()->GetTexture("GrassTex", TEXTUREDIRCOURSETERRAIN"Grass_D.png");
+	
 	//Creating in Instance VBO
 	glGenBuffers(1, &m_GrassInstancedVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_GrassInstancedVBO);
@@ -129,43 +130,6 @@ void TerrainNode::DrawGrass()
 {
 	//Grasses Points Drawing
 	m_GrassShader->Bind();
-
-	Matrix4 viewMatrix = SceneRenderer::Get()->GetCamera()->GetViewMatrix();
-	Matrix4 projMatrix = SceneRenderer::Get()->GetCamera()->GetProjMatrix();
-
-	m_GrassShader->SetMat4("viewMatrix", viewMatrix);
-	m_GrassShader->SetMat4("projMatrix", projMatrix);
-
-	//Directional Light
-	if (m_DirLight == nullptr)
-		m_DirLight = SceneRenderer::Get()->GetDirLight();
-
-	m_GrassShader->SetVector3("lightDir", m_DirLight->GetLightDir());
-	m_GrassShader->SetVector4("lightDirColour", m_DirLight->GetColour());
-	m_GrassShader->SetFloat("lightDirIntensity", m_DirLight->GetIntensity());
-
-	//Point Lights
-	if ((int)m_PointLightsList.size() <= 0)
-		m_PointLightsList = SceneRenderer::Get()->GetPointLightsList();
-
-	m_GrassShader->SetInt("numPointLights", (int)m_PointLightsList.size());
-	if ((int)m_PointLightsList.size() > 0)
-	{
-		for (size_t i = 0; i < m_PointLightsList.size(); i++)
-		{
-			LightPointNode& pointLight = *m_PointLightsList[i];
-
-			std::string lightPosName = "pointLightPos[" + std::to_string(i) + "]";
-			std::string lightColorName = "pointLightColour[" + std::to_string(i) + "]";
-			std::string lightRadiusName = "pointLightRadius[" + std::to_string(i) + "]";
-			std::string lightIntensityName = "pointLightIntensity[" + std::to_string(i) + "]";
-
-			m_GrassShader->SetVector3(lightPosName, pointLight.GetLightPosition());
-			m_GrassShader->SetVector4(lightColorName, pointLight.GetLightColour());
-			m_GrassShader->SetFloat(lightRadiusName, pointLight.GetLightRadius());
-			m_GrassShader->SetFloat(lightIntensityName, pointLight.GetLightIntensity());
-		}
-	}
 
 	m_GrassShader->SetTexture("diffuseTex", m_GrassTexID, 0);
 	//m_GrassShader->SetTexture("diffuseSplatmapTex", m_TerrainHMap->GetTerrainTextureSplatmap(), 1);

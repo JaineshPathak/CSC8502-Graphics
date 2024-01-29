@@ -2,6 +2,8 @@
 
 LightPointNode::LightPointNode()
 {
+	nodeName = "LightPointNode";
+
 	m_PointLightColour = Vector4();
 	m_PointLightSpecularColour = Vector4();
 	m_PointLightRadius = 1.0f;
@@ -10,6 +12,8 @@ LightPointNode::LightPointNode()
 
 LightPointNode::LightPointNode(const Vector4& lightColour, const Vector4& lightSpecularColour, const float& lightRadius, const float& lightIntensity)
 {
+	nodeName = "LightPointNode";
+
 	m_PointLightColour = lightColour;
 	m_PointLightSpecularColour = lightSpecularColour;
 	m_PointLightRadius = lightRadius;
@@ -30,24 +34,4 @@ void LightPointNode::SetPosition(const Vector3& pos)
 {
 	modelPosition = pos;
 	SetTransform(Matrix4::Translation(modelPosition));
-}
-
-void LightPointNode::SetLightRadius(const float& radius)
-{
-	m_PointLightRadius = radius;
-}
-
-void LightPointNode::SetLightIntensity(const float& intensity)
-{
-	m_PointLightIntensity = intensity;
-}
-
-void LightPointNode::SetLightColour(const Vector4& lightColour)
-{
-	m_PointLightColour = lightColour;
-}
-
-void LightPointNode::SetLightSpecularColour(const Vector4& lightSpecularColour)
-{
-	m_PointLightSpecularColour = lightSpecularColour;
 }

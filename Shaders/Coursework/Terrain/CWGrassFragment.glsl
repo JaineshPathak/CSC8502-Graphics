@@ -1,18 +1,32 @@
-#version 330 core
+#version 430
+
+const int MAX_POINT_LIGHTS = 100;
 
 uniform sampler2D diffuseTex;
 
-//Directional Light
-uniform vec3 lightDir;
-uniform vec4 lightDirColour;
-uniform float lightDirIntensity;
+struct DirectionalLight
+{
+	vec4 lightDirection;
+	vec4 lightColor;
+};
 
-//Point Light
-uniform int numPointLights;
-uniform vec3 pointLightPos[50];
-uniform vec4 pointLightColour[50];
-uniform float pointLightRadius[50];
-uniform float pointLightIntensity[50];
+struct PointLight
+{
+	vec4 lightPosition;
+	vec4 lightColor;
+	vec4 lightRadialIntensityData;
+};
+
+layout(std140, binding = 1) uniform u_DirectionLight
+{
+	DirectionalLight directionalLight;
+};
+
+layout(std140, binding = 2) uniform u_PointLights
+{
+	int numPointLights;
+	PointLight pointLights[MAX_POINT_LIGHTS];
+};
 
 //This should be same from Geometry Shader if there is any or else from Fragment Shader
 in Vertex
@@ -25,8 +39,8 @@ in Vertex
 
 out vec4 fragColour;
 
-vec3 CalcDirLight(vec3 normal, vec4 diffuseFinal);
-vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 normal, vec4 diffuseFinal);
+vec3 CalcDirLight(vec3 normal, vec3 albedoColor);
+vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 normal, vec3 albedoColor);
 
 void main(void)
 {
@@ -36,19 +50,21 @@ void main(void)
 	vec3 normal = IN.normal;
 
 	vec3 result = vec3(0.0);
-	result = CalcDirLight(normal, albedoColor);
+	result = CalcDirLight(normal, albedoColor.rgb);
 	if(numPointLights > 0)
 	{
 		for(int i = 0; i < numPointLights; i++)
-			result += CalcPointLight(pointLightColour[i], pointLightPos[i], pointLightRadius[i], pointLightIntensity[i], normal, albedoColor);
+			result += CalcPointLight(pointLights[i].lightColor, pointLights[i].lightPosition.xyz, pointLights[i].lightRadialIntensityData.x, pointLights[i].lightRadialIntensityData.y, normal, albedoColor.rgb);
 	}
 	
 	fragColour = vec4(result, 1.0);
 }
 
-vec3 CalcDirLight(vec3 normal, vec4 diffuseFinal)
+vec3 CalcDirLight(vec3 normal, vec3 albedoColor)
 {
-	vec3 albedoColor = diffuseFinal.rgb;
+	vec3 lightDir = directionalLight.lightDirection.xyz;
+	vec4 lightDirColour = directionalLight.lightColor;
+	float lightDirIntensity = directionalLight.lightDirection.w;
 
 	vec3 N = normalize(normal);
 	vec3 L = normalize(-lightDir);
@@ -61,10 +77,8 @@ vec3 CalcDirLight(vec3 normal, vec4 diffuseFinal)
 	return (ambient + diffuse) * albedoColor;
 }
 
-vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 normal, vec4 diffuseFinal)
+vec3 CalcPointLight(vec4 pointLightColour, vec3 pointLightPos, float pointLightRadius, float pointLightIntensity, vec3 normal, vec3 albedoColor)
 {
-	vec3 albedoColor = diffuseFinal.rgb;
-
 	vec3 N = normalize(normal);
 	vec3 L = normalize(pointLightPos - IN.worldPos);
 	

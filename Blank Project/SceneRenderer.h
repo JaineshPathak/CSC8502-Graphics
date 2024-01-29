@@ -17,6 +17,7 @@ class MeshAnimation;
 class DirectionalLight;
 class Skybox;
 class ShadowBuffer;
+class UniformBuffer;
 
 struct SceneNodeProperties
 {
@@ -50,6 +51,19 @@ struct AnimSceneNodeProperties : SceneNodeProperties
 	}
 };
 
+struct PointLightStruct
+{
+	Vector4 lightPosition;
+	Vector4 lightColor;
+	Vector4 lightRadiusIntensityData;	//x = Radius, y = Intensity
+};
+
+struct DirectionalLightStruct
+{
+	Vector4 lightDirection;
+	Vector4 lightColor;
+};
+
 class SceneRenderer : public OGLRenderer
 {
 public:
@@ -74,6 +88,8 @@ protected:
 	bool InitSkybox();
 	bool InitGLParameters();
 	bool InitSceneNodes();
+
+	void UpdateUBOData();
 
 	void SpawnSceneNode(const SceneNodeProperties& nodeProp);
 	void SpawnSceneNode(const AnimSceneNodeProperties& nodeProp);
@@ -103,10 +119,19 @@ private:
 	static std::shared_ptr<SceneNode> m_RootNode;
 	std::shared_ptr<TerrainNode> m_TerrainNode;
 
+	//Lights
 	std::shared_ptr<DirectionalLight> m_DirLight;
+	DirectionalLightStruct m_DirLightStruct;
+	
 	std::vector<std::shared_ptr<LightPointNode>> m_PointLightsList;
+	std::vector<PointLightStruct> m_PointLightStructList;
 	int m_PointLightsNum;
 
+	//Lights Uniform Buffers
+	std::shared_ptr<UniformBuffer> m_MatrixUBO;
+	std::shared_ptr<UniformBuffer> m_DirLightUBO;
+	std::shared_ptr<UniformBuffer> m_PointLightUBO;
+	
 	std::shared_ptr<Skybox> m_Skybox;
 	std::shared_ptr<ShadowBuffer> m_ShadowBuffer;
 

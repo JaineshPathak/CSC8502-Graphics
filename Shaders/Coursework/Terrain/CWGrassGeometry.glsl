@@ -3,8 +3,11 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 12) out;
 
-uniform mat4 viewMatrix;
-uniform mat4 projMatrix;
+layout(std140, binding = 0) uniform Matrices
+{
+	mat4 projMatrix;
+	mat4 viewMatrix;
+};
 //layout(location = 1) uniform sampler2D diffuseSplatmapTex;
 
 const float PI = 3.141592653589793;
