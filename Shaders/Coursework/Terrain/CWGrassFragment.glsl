@@ -3,6 +3,7 @@
 const int MAX_POINT_LIGHTS = 100;
 
 uniform sampler2D diffuseTex;
+layout(location = 2) uniform sampler2D diffuseSplatmapTex;
 
 struct DirectionalLight
 {
@@ -42,11 +43,13 @@ layout(std140, binding = 3) uniform u_EnvironmentData
 //This should be same from Geometry Shader if there is any or else from Fragment Shader
 in Vertex
 {
+	vec3 position;
 	vec4 colour;
 	vec2 texCoord;
 	vec3 normal;
 	vec3 worldPos;
 	float visibility;
+	vec2 splatTexCoord;
 } IN;
 
 out vec4 fragColour;
@@ -69,7 +72,10 @@ void main(void)
 			result += CalcPointLight(pointLights[i].lightColor, pointLights[i].lightPosition.xyz, pointLights[i].lightRadialIntensityData.x, pointLights[i].lightRadialIntensityData.y, normal, albedoColor.rgb);
 	}
 	
-	fragColour = vec4(result, 1.0);
+	//fragColour = vec4(result, 1.0);
+	//fragColour = vec4(IN.worldPos, 1.0);
+	//fragColour = texture(diffuseTex, (IN.worldPos.xz / textureSize(diffuseTex, 0)) / 16.0f);
+	fragColour = texture(diffuseSplatmapTex, IN.splatTexCoord);
 	
 	bool fogEnabled = bool(envData.fogData.x);
 	if(fogEnabled)

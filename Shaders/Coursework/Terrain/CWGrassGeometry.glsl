@@ -3,6 +3,10 @@
 layout (points) in;
 layout (triangle_strip, max_vertices = 12) out;
 
+layout(location = 1) uniform sampler2D diffuseWindTex;
+layout(location = 2) uniform sampler2D diffuseSplatmapTex;
+uniform float u_Time;
+
 layout(std140, binding = 0) uniform Matrices
 {
 	mat4 projMatrix;
@@ -23,11 +27,13 @@ layout(std140, binding = 3) uniform u_EnvironmentData
 const float PI = 3.141592653589793;
 
 float grass_size;
+float test_grass_size = 1.5f;
 const float c_min_size = 1.5f;
 
 //This should be same as from Vertex Shader
 in Vertex
 {
+    vec3 position;
     vec4 colour;
 	vec2 texCoord;
 	vec3 normal;
@@ -38,11 +44,13 @@ in Vertex
 //This should same for Fragment Shader
 out Vertex
 {
+    vec3 position;
     vec4 colour;
     vec2 texCoord;
     vec3 normal;
     vec3 worldPos;
     float visibility;
+    vec2 splatTexCoord;
 } OUT;
 
 float random(vec2 st);
@@ -67,13 +75,25 @@ void CreateQuad(in vec4 basePosition, in mat4 crossModel)
     textCoords[2] = vec2(0.0, 1.0); // up left
     textCoords[3] = vec2(1.0, 1.0); // up right
 
+    vec2 windDirection = vec2(1.0, 1.0);
+	float windStrength = 0.15f;
+
+	vec2 uv = basePosition.xz + windDirection * windStrength * u_Time;
+	uv.x = mod(uv.x, 1.0);
+	uv.y = mod(uv.y, 1.0);
+
+	vec4 wind = texture(diffuseWindTex, uv);
+
+    // we calculate the matrix that allows the quad to be tilted according to the wind direction and force
+	mat4 modelWind = (rotationX(wind.x * PI * 0.75f - PI * 0.25f) * rotationZ(wind.y * PI * 0.75f - PI * 0.25f));
+
 //    vec3 normal = normalize(cross(vertexPosition[1].xyz - vertexPosition[0].xyz, vertexPosition[2].xyz - vertexPosition[0].xyz));
 //    mat3 normalMat = transpose(inverse(mat3(IN[0].instanceMat)));
 //    OUT.normal = normalize(normalMat * normalize(normal));
 
+    mat4 modelWindApply = mat4(1.0);
     for(int i = 0; i < 4; i++) 
     {
-
         //TODO: FIX THIS
         //float grassAmount = texture(diffuseSplatmapTex, textCoords[i] / 16.0).r;
         /*if(grassAmount < 0.2f)
@@ -81,8 +101,11 @@ void CreateQuad(in vec4 basePosition, in mat4 crossModel)
         else
             grass_size = 0.0f;*/
 
+        /*if (i == 2) 
+			modelWindApply = modelWind;*/
+
         //vertexPosition[i] *= grass_size;	         
-        gl_Position = projMatrix * viewMatrix * IN[0].instanceModelMat * (gl_in[0].gl_Position + crossModel * vertexPosition[i] * grass_size);
+        gl_Position = projMatrix * viewMatrix * IN[0].instanceModelMat * (gl_in[0].gl_Position + modelWindApply * crossModel * vertexPosition[i] * grass_size);
         OUT.texCoord = textCoords[i];
 
         //grass_size = mix(0.0f, 1.5f, grassAmount);
@@ -106,9 +129,19 @@ void CreateGrass()
 
 void main()
 {
+    OUT.position = IN[0].position;
     OUT.colour = IN[0].colour;
     OUT.normal = IN[0].normal; 
     OUT.worldPos = IN[0].worldPos;
+    
+    //OUT.splatTexCoord = IN[0].worldPos.xz / 8160.0f;
+    float u = mod(IN[0].worldPos.x, 8160.0f) / 8160.0f;
+    float v = mod(IN[0].worldPos.z, 8160.0f) / 8160.0f;
+    OUT.splatTexCoord = vec2(u, v);
+    //OUT.splatTexCoord = (IN[0].worldPos.xz / textureSize(diffuseSplatmapTex, 0)) / 16.0f;
+    //OUT.splatTexCoord = ((IN[0].instanceModelMat * vec4(IN[0].position, 1.0)).xz / textureSize(diffuseSplatmapTex, 0)) / 16.0f;
+    //OUT.splatTexCoord = (inverse(IN[0].instanceModelMat) * vec4(IN[0].worldPos, 1.0)).xz / textureSize(diffuseSplatmapTex, 0) / 16.0f;
+    test_grass_size = texture(diffuseSplatmapTex, OUT.splatTexCoord).r * 2.0;
 
     bool fogEnabled = bool(envData.fogData.x);
     if(fogEnabled)

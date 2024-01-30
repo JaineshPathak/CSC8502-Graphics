@@ -4,6 +4,8 @@
 #include "LightPointNode.h"
 
 #include <nclgl/Camera.h>
+#include <nclgl/Window.h>
+#include <nclgl/GameTimer.h>
 #include <nclgl/DirectionalLight.h>
 
 const std::size_t VEC4Size = sizeof(Vector4);
@@ -20,6 +22,9 @@ TerrainNode::TerrainNode()
 	m_GrassShader = std::shared_ptr<Shader>(new Shader(SHADERDIRCOURSETERRAIN"CWGrassVertex.glsl", SHADERDIRCOURSETERRAIN"CWGrassFragment.glsl", SHADERDIRCOURSETERRAIN"CWGrassGeometry.glsl"));
 	m_NormalsShader = std::shared_ptr<Shader>(new Shader(SHADERDIRCOURSETERRAIN"CWNormalsVertex.glsl", SHADERDIRCOURSETERRAIN"CWNormalsFragment.glsl", SHADERDIRCOURSETERRAIN"CWNormalsGeometry.glsl"));
 	m_GrassTexID = AssetManager::Get()->GetTexture("GrassTex", TEXTUREDIRCOURSETERRAIN"Grass_D.png");
+	m_GrassWindTexID = AssetManager::Get()->GetTexture("GrassWindTex", TEXTUREDIRCOURSETERRAIN"Grass_WindMap.png");
+
+	OGLRenderer::SetTextureRepeating(m_GrassTexID, true);
 	
 	//Creating in Instance VBO
 	glGenBuffers(1, &m_GrassInstancedVBO);
@@ -132,8 +137,10 @@ void TerrainNode::DrawGrass()
 	//Grasses Points Drawing
 	m_GrassShader->Bind();
 
+	//m_GrassShader->SetFloat("u_Time", (float)Window::GetTimer()->GetTotalTimeSeconds());
 	m_GrassShader->SetTexture("diffuseTex", m_GrassTexID, 0);
-	//m_GrassShader->SetTexture("diffuseSplatmapTex", m_TerrainHMap->GetTerrainTextureSplatmap(), 1);
+	//m_GrassShader->SetTexture("diffuseWindTex", m_GrassWindTexID, 1);
+	m_GrassShader->SetTexture("diffuseSplatmapTex", m_TerrainHMap->GetTerrainTextureSplatmap(), 2);
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_BLEND);

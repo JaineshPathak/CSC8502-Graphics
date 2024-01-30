@@ -11,6 +11,7 @@ layout(location = 9) in mat4 instanceModelMatrix;
 
 out Vertex
 {
+	vec3 position;
 	vec4 colour;
 	vec2 texCoord;
 	vec3 normal;
@@ -20,6 +21,7 @@ out Vertex
 
 void main (void)
 {
+	OUT.position = position;
 	OUT.colour = colour;
 	OUT.texCoord = texCoord;
 	OUT.worldPos = (instanceModelMatrix * vec4(position, 1.0)).xyz;

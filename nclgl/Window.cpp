@@ -4,8 +4,9 @@
 #include <ImGui/imgui.h>
 
 Window* Window::window		= nullptr;
-Keyboard*Window::keyboard	= nullptr;
-Mouse*Window::mouse			= nullptr;
+Keyboard* Window::keyboard	= nullptr;
+Mouse* Window::mouse		= nullptr;
+GameTimer* Window::timer = nullptr;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 

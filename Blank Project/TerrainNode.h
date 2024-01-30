@@ -34,6 +34,7 @@ protected:
 	//Grasses Data
 	unsigned int m_GrassInstancedVBO;
 	unsigned int m_GrassTexID;
+	unsigned int m_GrassWindTexID;
 	std::shared_ptr<Mesh> m_GrassPointMesh;
 	std::shared_ptr<Shader> m_GrassShader;
 	std::shared_ptr<Shader> m_NormalsShader;

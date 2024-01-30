@@ -52,7 +52,7 @@ public:
 	static Keyboard*	GetKeyboard()	{return keyboard;}
 	static Mouse*		GetMouse()		{return mouse;}
 
-	GameTimer*   GetTimer()		{return timer;}
+	static GameTimer*   GetTimer()		{return timer;}
 
 protected:
 	void	CheckMessages(MSG &msg);
@@ -64,7 +64,7 @@ protected:
 	static Keyboard*	keyboard;
 	static Mouse*		mouse;
 
-	GameTimer*	timer;
+	static GameTimer*	timer;
 
 	OGLRenderer*		renderer;
 
